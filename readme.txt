@@ -5,7 +5,7 @@ Requires at least: 5.0
 License: GPL3
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 1.2.8
+Stable tag: 1.3.0
 
 Configure your own Terms and Conditions specific to your service or webshop.
 
@@ -46,6 +46,14 @@ The Terms & Conditions have their own [CSS classes](https://complianz.io/styling
 Terms and Conditions, on the web, also known as Terms of Service or Terms of Use, is an agreement explaining the terms, rules, and guidelines to which a user must agree before entering a contractual relationship with the website owner.
 
 == Change log ==
+= 1.3.0 =
+* March 2026
+* Fix: updated Gutenberg block to API version 3 for WordPress 6.9+ iframe editor compatibility
+* Fix: security hardening in admin JavaScript (DOM XSS)
+* Improvement: upgraded mpdf to v8.2.7
+* Fix: deferred translation loading for WordPress 6.7 compatibility
+* Fix: code quality and static analysis improvements
+
 = 1.2.8 =
 * May 7th 2024
 * Improvement: changed email obfuscation to use core WordPress functionality
