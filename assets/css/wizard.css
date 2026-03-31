@@ -1363,6 +1363,7 @@ html .mceContentBody {
   cursor: default;
   gap: 3px;
   padding-bottom: var(--rsp-spacing-xs);
+  align-items: center;
 }
 .cmplz-terms-conditions .field-group.cmplz-editor .cmplz-label,
 .cookie-policy-snapshots .field-group.cmplz-editor .cmplz-label,
