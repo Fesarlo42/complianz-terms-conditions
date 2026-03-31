@@ -1,0 +1,69 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 5
+    parallel:
+        maximumNumberOfProcesses: 1
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    paths:
+        - class-admin.php
+        - class-document.php
+        - class-field.php
+        - class-review.php
+        - class-wizard.php
+        - callback-notices.php
+        - complianz-terms-conditions.php
+        - config
+        - download.php
+        - functions.php
+        - gutenberg/block.php
+        - gutenberg/index.php
+        - rest-api
+        - templates
+        - uninstall.php
+    dynamicConstantNames:
+        - cmplz_tc_version
+        - cmplz_tc_url
+        - cmplz_tc_path
+        - MINUTE_IN_SECONDS
+        - HOUR_IN_SECONDS
+        - DAY_IN_SECONDS
+    ignoreErrors:
+        # ── External plugin (Complianz GDPR) ──────────────────────────────────
+        - message: '#(Class|Instanceof between null and) COMPLIANZ#'
+        - message: '#Access to static property \$(company|document) on an unknown class COMPLIANZ#'
+        - message: '#Function (cmplz_get_document_url|cmplz_get_value|cmplz_short_date_format|cmplz_has_region) not found#'
+        - message: '#Constant cmplz_url not found#'
+
+        # ── Optional Mpdf dependency ───────────────────────────────────────────
+        - message: '#(Instantiated class|Call to method .* on an unknown class) Mpdf\\Mpdf#'
+        - message: '#PHPDoc tag @throws with type Mpdf\\MpdfException is not subtype of Throwable#'
+
+        # ── Plugin helper functions (defined in functions.php / assets/icons.php)
+        # ── These are included at runtime but not in the analysed paths list. ──
+        - message: '#Function (cmplz_tc_icon|cmplz_tc_get_template|cmplz_get_template) not found#'
+
+        # ── Call to static method this() on legacy class alias ─────────────────
+        - message: '#Call to static method this\(\) on an unknown class cmplz_field#'
+
+        # ── Singleton pattern: $_this property ────────────────────────────────
+        # PHPStan cannot trace the assignment in __construct via self::$_this = $this.
+        - message: '#Static property cmplz_tc_(document|wizard|field|config)::\$_this is never written, only read#'
+        - message: '#Static property cmplz_tc_(document|wizard|field|config)::\$_this .* in isset\(\) is not nullable#'
+        # wp_die() terminates execution; the unreachable check after it is a false positive.
+        - message: '#Unreachable statement - code above always terminates#'
+
+        # ── Config files are included inside class methods ($this is in scope) ──
+        - message: '#Variable \$this might not be defined#'
+
+        # ── Dynamic methods added by add-on plugins or future extension points ─
+        - message: '#Call to an undefined method cmplz_tc_document::(get_region|set_wp_privacy_policy)\(\)#'
+        - message: '#Call to an undefined method cmplz_tc_field::(document|colorpicker|border_radius|border_width|cookies|services|thirdparties|processors)\(\)#'
+
+        # ── Hook callbacks: $accepted_args mismatch is intentional ────────────
+        - message: '#Callback expects 0 parameters, \$accepted_args is set to 2#'
+
+        # ── Method intentionally kept for potential external callers ───────────
+        - message: '#Method cmplz_tc_field::get_language_descriptor\(\) is unused#'

@@ -5,7 +5,9 @@
         "wp-cli/wp-cli-bundle": "^2.7",
         "phpcompatibility/php-compatibility": "^9.3",
         "squizlabs/php_codesniffer": "^3.13",
-        "wp-coding-standards/wpcs": "^3.3"
+        "wp-coding-standards/wpcs": "^3.3",
+        "phpstan/phpstan": "^2.1",
+        "szepeviktor/phpstan-wordpress": "^2.0"
     },
     "config": {
         "allow-plugins": {
@@ -13,8 +15,9 @@
         }
     },
     "scripts": {
-        "php:report": "phpcs --standard=WordPress --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/* --extensions=php -s -v --report=full .",
-        "php:report:fix": "phpcbf --standard=WordPress --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/* --extensions=php .",
-        "php-compatibility": "vendor/bin/phpcs -p --report=code --extensions=php --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/* --standard=vendor/phpcompatibility/php-compatibility/PHPCompatibility --runtime-set testVersion 7.4-8.4 ."
+        "php:report": "phpcs --standard=WordPress --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/*,*/tests/*,phpstan-bootstrap.php --extensions=php -s -v --report=full .",
+        "php:report:fix": "phpcbf --standard=WordPress --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/*,*/tests/*,phpstan-bootstrap.php --extensions=php .",
+        "php-compatibility": "vendor/bin/phpcs -p --report=code --extensions=php --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/*,*/tests/*,phpstan-bootstrap.php --standard=vendor/phpcompatibility/php-compatibility/PHPCompatibility --runtime-set testVersion 7.4-8.4 .",
+        "phpstan:analyse": "vendor/bin/phpstan analyse --memory-limit=-1"
     }
 }
