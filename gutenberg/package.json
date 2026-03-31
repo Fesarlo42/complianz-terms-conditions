@@ -11,10 +11,10 @@
   "author": "rogierlankhorst",
   "license": "GPL-2.0-only",
   "devDependencies": {
-    "@wordpress/scripts": "^22.5.0"
+    "@wordpress/scripts": "^31.6.0"
   },
   "dependencies": {
-    "@wordpress/icons": "^9.20.0",
+    "@wordpress/icons": "^11.8.0",
     "react-native-html-parser": "^0.1.0"
   }
 }
