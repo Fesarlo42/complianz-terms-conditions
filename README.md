@@ -12,7 +12,7 @@ If you're a developer and want to help out, please feel free to contribute anywa
 
 **Bug report:** Please start an issue, and if you have a fix a pull request. Please explain your issue clearly, and use comments when adding a pull request. Your contribution will be acknowledges on WordPress.org.
 
-**New Features:** New features can also be assigned to issues. If you want to add a new feature, please see if you can add it to our [integrations hub](https://github.com/Really-Simple-Plugins/complianz-integrations).
+**New Features:** New features can also be assigned to issues. If you want to add a new feature, please see if you can add it to our [integrations hub](https://github.com/complianz/complianz-integrations).
 
 **Translations:** Looking for your own language to be improved or added? Contact [support](https://complianz.io/support/) if you want to be a premium contributor, or make your first changes on [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/complianz-gdpr/).
 

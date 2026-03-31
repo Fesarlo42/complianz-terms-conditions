@@ -3,8 +3,8 @@ Contributors: RogierLankhorst, aahulsebos, leonwimmenhoeve, paapst
 Tags: terms, conditions, webshop, legal, terms and conditions
 Requires at least: 5.0
 License: GPL3
-Requires PHP: 7.2
-Tested up to: 6.5
+Requires PHP: 7.4
+Tested up to: 6.9
 Stable tag: 1.2.8
 
 Configure your own Terms and Conditions specific to your service or webshop.
@@ -19,9 +19,9 @@ Complianz - Terms and Conditions is a stand-alone plugin from Complianz. A simpl
 * A full-featured Terms & Conditions applicable to most businesses and personal endeavours, and available for editing if needed.
 * Can be used stand-alone or fully integrated with the Complianz - GDPR/CCPA Cookie Consent plugin.
 
-Are you missing anything or have suggestions? Leave an issue, or do a pull request on [GitHub](https://github.com/Really-Simple-Plugins/complianz-terms-conditions).
+Are you missing anything or have suggestions? Leave an issue, or do a pull request on [GitHub](https://github.com/complianz/complianz-terms-conditions).
 
-Check out other plugins developed by Really Simple Plugins: [Complianz - GDPR/CCPA Cookie Consent](https://wordpress.org/plugins/complianz-gdpr/), [Really Simple SSL](https://wordpress.org/plugins/really-simple-ssl/) & [Burst Statistics](https://wordpress.org/plugins/burst-statistics/).
+Check out other plugins developed by Complianz: [Complianz - GDPR/CCPA Cookie Consent](https://complianz.io/).
 
 [Contact](https://complianz.io/support/) us if you have any questions, issues, or suggestions. Complianz - Terms & Conditions is developed by [Complianz B.V.](https://complianz.io).
 
