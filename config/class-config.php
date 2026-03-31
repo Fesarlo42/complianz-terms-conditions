@@ -25,7 +25,21 @@ if ( ! class_exists( "cmplz_tc_config" ) ) {
 
 			self::$_this = $this;
 
+			add_action( 'init', array( $this, 'load_config' ), 2 );
 
+			/**
+			 * Preload fields with a filter, to allow for overriding types
+			 */
+			add_action( 'init', array( $this, 'preload_init' ), 3 );
+
+			/**
+			 * The integrations are loaded with priority 10
+			 * Because we want to initialize after that, we use 15 here
+			 */
+			add_action( 'init', array( $this, 'init' ), 4 );
+		}
+
+		public function load_config() {
 			//common options type
 			$this->yes_no = array(
 				'yes' => __( 'Yes', 'complianz-terms-conditions' ),
@@ -34,24 +48,12 @@ if ( ! class_exists( "cmplz_tc_config" ) ) {
 
 			$this->languages = $this->get_supported_languages();
 
-
-				/* config files */
+			/* config files */
 			require_once( cmplz_tc_path . '/config/countries.php' );
 			require_once( cmplz_tc_path . '/config/steps.php' );
 			require_once( cmplz_tc_path . '/config/questions-wizard.php' );
 			require_once( cmplz_tc_path . '/config/documents/documents.php' );
 			require_once( cmplz_tc_path . '/config/documents/terms-conditions.php' );
-
-			/**
-			 * Preload fields with a filter, to allow for overriding types
-			 */
-			add_action( 'plugins_loaded', array( $this, 'preload_init' ), 10 );
-
-			/**
-			 * The integrations are loaded with priority 10
-			 * Because we want to initialize after that, we use 15 here
-			 */
-			add_action( 'plugins_loaded', array( $this, 'init' ), 15 );
 		}
 
 		static function this() {

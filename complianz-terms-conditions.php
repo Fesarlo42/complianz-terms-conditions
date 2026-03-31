@@ -5,10 +5,10 @@
  * Description: Plugin from Complianz to generate Terms & Conditions for your website.
  * Version: 1.2.8
  * Requires at least: 5.7
- * Requires PHP: 7.2
+ * Requires PHP: 7.4
  * Text Domain: complianz-terms-conditions
  * Domain Path: /languages
- * Author: Really Simple Plugins
+ * Author: Complianz
  * Author URI: https://complianz.io
  */
 
@@ -21,14 +21,14 @@ define('cmplz_tc_free', true);
 
 if (!function_exists('cmplz_tc_activation_check')) {
 	/**
-	 * Checks if the plugin can safely be activated, at least php 5.6 and wp 4.6
+	 * Checks if the plugin can safely be activated, at least php 7.4 and wp 4.6
 	 * @since 2.1.5
 	 */
     function cmplz_tc_activation_check()
     {
-        if (version_compare(PHP_VERSION, '7.2', '<')) {
+        if (version_compare(PHP_VERSION, '7.4', '<')) {
             deactivate_plugins(plugin_basename(__FILE__));
-            wp_die(__('Complianz - Terms & Conditions cannot be activated. The plugin requires PHP 7.2 or higher', 'complianz-terms-conditions'));
+            wp_die(__('Complianz - Terms & Conditions cannot be activated. The plugin requires PHP 7.4 or higher', 'complianz-terms-conditions'));
         }
 
         global $wp_version;
@@ -122,7 +122,9 @@ if (!class_exists('COMPLIANZ_TC')) {
 
         private function hooks()
         {
-	        load_plugin_textdomain( 'complianz-terms-conditions' );
+	        add_action( 'init', function() {
+		        load_plugin_textdomain( 'complianz-terms-conditions' );
+	        } );
         }
     }
 
