@@ -970,10 +970,9 @@ if ( ! class_exists( 'cmplz_tc_wizard' ) ) {
 				true
 			);
 			foreach ( $fields as $fieldname => $args ) {
-				// if a condition exists, only check for this field if the condition applies.
-				if ( isset( $args['condition'] )
-					|| ( isset( $args['callback_condition'] )
-						&& ! COMPLIANZ_TC::$field->condition_applies( $args ) )
+				// If a condition exists, only check this field when the condition currently applies.
+				if ( ( isset( $args['condition'] ) || isset( $args['callback_condition'] ) )
+					&& ! COMPLIANZ_TC::$field->condition_applies( $args )
 				) {
 					continue;
 				}
