@@ -1,4 +1,15 @@
+# Dependencies
 /vendor
-.DS_Store
 /node_modules
 /gutenberg/node_modules
+
+# OS
+.DS_Store
+
+# IDE / editor
+/.idea
+/.vscode
+
+# Claude Code
+/.claude
+
