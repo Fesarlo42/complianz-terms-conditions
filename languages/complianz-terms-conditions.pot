@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-06-19T14:39:54+00:00\n"
+"POT-Creation-Date: 2026-06-19T15:09:36+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: complianz-terms-conditions\n"
@@ -63,20 +63,20 @@ msgstr ""
 msgid "Upgrade to pro"
 msgstr ""
 
-#: class-admin.php:304
+#: class-admin.php:322
 msgid "Settings"
 msgstr ""
 
-#: class-admin.php:312
+#: class-admin.php:330
 #: templates/admin_wrap.php:42
 msgid "Support"
 msgstr ""
 
 #. translators: %s is the document type name, e.g. "Terms & Conditions".
-#: class-admin.php:344
-#: class-admin.php:345
-#: class-admin.php:385
-#: class-admin.php:386
+#: class-admin.php:362
+#: class-admin.php:363
+#: class-admin.php:403
+#: class-admin.php:404
 #: class-wizard.php:875
 #: class-wizard.php:879
 #: config/steps.php:68
@@ -3203,71 +3203,71 @@ msgstr ""
 msgid "Do you offer returns of goods or the withdrawal of services?"
 msgstr ""
 
-#: config/questions-wizard.php:539
-msgid "Following EU Directive 2023/2673 (effective 19 June 2026), you must offer consumers an easy-to-use online withdrawal function for distance contracts. Please add the link to your own withdrawal function below - it is now required."
-msgstr ""
-
-#: config/questions-wizard.php:553
+#: config/questions-wizard.php:542
 msgid "Add the link to your withdrawal function"
 msgstr ""
 
-#: config/questions-wizard.php:554
+#: config/questions-wizard.php:543
 msgid "Add the link to your own withdrawal function. This link will be shown in your Terms & Conditions so users can exercise their right of withdrawal."
 msgstr ""
 
-#: config/questions-wizard.php:569
+#: config/questions-wizard.php:544
+msgid "Following EU Directive 2023/2673 (effective 19 June 2026), you must offer consumers an easy-to-use online withdrawal function for distance contracts. Adding the link to your withdrawal function is now required."
+msgstr ""
+
+#: config/questions-wizard.php:559
 msgid "What is your refund period in days?"
 msgstr ""
 
-#: config/questions-wizard.php:570
+#: config/questions-wizard.php:560
 msgid "EU legislation requires you to offer a minimum of 14 days refund period."
 msgstr ""
 
-#: config/questions-wizard.php:583
+#: config/questions-wizard.php:573
 msgid "Services and/or digital content."
 msgstr ""
 
-#: config/questions-wizard.php:584
+#: config/questions-wizard.php:574
 msgid "Utilities - Gas, water and electricity."
 msgstr ""
 
-#: config/questions-wizard.php:585
+#: config/questions-wizard.php:575
 msgid "Products and goods."
 msgstr ""
 
-#: config/questions-wizard.php:586
+#: config/questions-wizard.php:576
 msgid "A contract relating to goods ordered by the consumer and delivered separately."
 msgstr ""
 
-#: config/questions-wizard.php:587
+#: config/questions-wizard.php:577
 msgid "Subscription-based delivery of goods."
 msgstr ""
 
-#: config/questions-wizard.php:591
+#: config/questions-wizard.php:581
 msgid "Please choose the option that best describes the contract a consumer closes with you through the use of the website."
 msgstr ""
 
-#: config/questions-wizard.php:605
+#: config/questions-wizard.php:595
 msgid "Do you want to offer your customer to collect the goods yourself in the event of withdrawal?"
 msgstr ""
 
-#: config/questions-wizard.php:618
+#: config/questions-wizard.php:608
 msgid "We, the seller"
 msgstr ""
 
-#: config/questions-wizard.php:619
+#: config/questions-wizard.php:609
 msgid "The customer"
 msgstr ""
 
-#: config/questions-wizard.php:621
+#: config/questions-wizard.php:611
 msgid "The goods, by their nature, cannot normally be returned by post and a maximum cost of return applies "
 msgstr ""
 
-#: config/questions-wizard.php:624
+#: config/questions-wizard.php:614
 msgid "Who will bear the cost of returning the goods?"
 msgstr ""
 
-#: config/questions-wizard.php:638
+#: config/questions-wizard.php:628
 msgid "Regarding the previous question, fill in the maximum amount including the currency."
 msgstr ""
 

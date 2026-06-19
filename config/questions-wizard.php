@@ -530,19 +530,8 @@ $this->fields = $this->fields + array(
 	),
 	*/
 
-	// Notice informing users of the EU Directive 2023/2673 withdrawal-function requirement.
-	'withdrawal_legislation_notice' => array(
-		'step'      => 2,
-		'section'   => 5,
-		'source'    => 'terms-conditions',
-		'type'      => 'notice',
-		'label'     => __( 'Following EU Directive 2023/2673 (effective 19 June 2026), you must offer consumers an easy-to-use online withdrawal function for distance contracts. Please add the link to your own withdrawal function below - it is now required.', 'complianz-terms-conditions' ),
-		'condition' => array(
-			'if_returns' => 'yes',
-		),
-	),
-
 	// Link to the user's own withdrawal function; required and always shown when returns are offered.
+	// The EU Directive 2023/2673 notice is rendered as a sidebar notice via the 'help' argument.
 	'if_returns_custom_link'      => array(
 		'step'      => 2,
 		'section'   => 5,
@@ -552,6 +541,7 @@ $this->fields = $this->fields + array(
 		'type'      => 'url',
 		'label'     => __( 'Add the link to your withdrawal function', 'complianz-terms-conditions' ),
 		'tooltip'   => __( 'Add the link to your own withdrawal function. This link will be shown in your Terms & Conditions so users can exercise their right of withdrawal.', 'complianz-terms-conditions' ),
+		'help'      => __( 'Following EU Directive 2023/2673 (effective 19 June 2026), you must offer consumers an easy-to-use online withdrawal function for distance contracts. Adding the link to your withdrawal function is now required.', 'complianz-terms-conditions' ),
 		'condition' => array(
 			'if_returns' => 'yes',
 		),
