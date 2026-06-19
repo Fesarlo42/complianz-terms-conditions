@@ -82,12 +82,12 @@ exit;
  *                      slash), or false if it could not be located.
  */
 function find_wordpress_base_path() {
-	$path = __DIR__;
-
 	// Bitnami server images keep WordPress at a fixed location; detect and short-circuit.
 	if ( file_exists( '/opt/bitnami/wordpress/wp-load.php' ) && file_exists( '/bitnami/wordpress/wp-config.php' ) ) {
 		return '/opt/bitnami/wordpress';
 	}
+
+	$path = __DIR__;
 
 	// Walk up the directory tree looking for wp-config.php.
 	do {

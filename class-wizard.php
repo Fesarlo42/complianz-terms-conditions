@@ -525,7 +525,7 @@ if ( ! class_exists( 'cmplz_tc_wizard' ) ) {
 		 */
 		public function wizard_is_locked() {
 			$user_id      = get_current_user_id();
-			$lock_user_id = $this->get_lock_user();
+			$lock_user_id = (int) $this->get_lock_user();
 			if ( $lock_user_id && $user_id !== $lock_user_id ) {
 				return true;
 			}

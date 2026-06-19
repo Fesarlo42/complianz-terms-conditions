@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-03-05T12:00:47+00:00\n"
+"POT-Creation-Date: 2026-03-25T09:35:13+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: complianz-terms-conditions\n"
@@ -132,13 +132,13 @@ msgstr ""
 
 #: class-document.php:1197
 #: gutenberg/build/index.js:1
-#: gutenberg/src/index.js:62
+#: gutenberg/src/index.js:73
 msgid "Synchronize document with Complianz"
 msgstr ""
 
 #: class-document.php:1209
 #: gutenberg/build/index.js:1
-#: gutenberg/src/index.js:63
+#: gutenberg/src/index.js:74
 msgid "Edit document and stop synchronization"
 msgstr ""
 
@@ -184,42 +184,42 @@ msgstr ""
 msgid "This field is required. Please complete the question before continuing"
 msgstr ""
 
-#: class-field.php:1328
+#: class-field.php:1333
 msgid "No options found"
 msgstr ""
 
-#: class-field.php:2079
+#: class-field.php:2084
 msgid "Choose an option"
 msgstr ""
 
-#: class-field.php:2238
+#: class-field.php:2243
 msgid "Start"
 msgstr ""
 
-#: class-field.php:2268
+#: class-field.php:2273
 #: class-wizard.php:865
 msgid "Save"
 msgstr ""
 
-#: class-field.php:2304
+#: class-field.php:2309
 msgid "Add new"
 msgstr ""
 
-#: class-field.php:2320
+#: class-field.php:2325
 msgid "Description"
 msgstr ""
 
-#: class-field.php:2342
+#: class-field.php:2347
 msgid "Remove"
 msgstr ""
 
 #. translators: %s is the name of the language (e.g. "Dutch", "French").
-#: class-field.php:2372
+#: class-field.php:2377
 msgid "Cookies in %s"
 msgstr ""
 
 #. translators: %s is the name of the language (e.g. "Dutch", "French").
-#: class-field.php:2372
+#: class-field.php:2377
 msgid "Services in %s"
 msgstr ""
 
@@ -2569,6 +2569,7 @@ msgctxt "Legal document"
 msgid "Except to the extent any additional contract expressly states otherwise, our maximum liability to you for all damages arising out of or related to the website or any products and services marketed or sold through the website, regardless of the form of legal action that imposes liability (whether in contract, equity, negligence, intended conduct, tort or otherwise) will be limited to the total price that you paid to us to purchase such products or services or use the website."
 msgstr ""
 
+#. translators: %s is the maximum liability amount.
 #: config/documents/terms-conditions.php:404
 #: config/documents/terms-conditions.php:411
 msgctxt "Legal document"
@@ -2792,6 +2793,7 @@ msgctxt "Legal document"
 msgid "These Terms and Conditions will be interpreted and construed exclusively in %s."
 msgstr ""
 
+#. translators: %s is the language name.
 #: config/documents/terms-conditions.php:550
 msgctxt "Legal document"
 msgid "All notices and correspondence will be written exclusively in that language."
@@ -2876,6 +2878,7 @@ msgctxt "Legal document"
 msgid "Any disputes relating to these Terms and Conditions shall be subject to the jurisdiction of the courts of %s."
 msgstr ""
 
+#. translators: %s is the company's country.
 #: config/documents/terms-conditions.php:596
 msgctxt "Legal document"
 msgid "If any part or provision of these Terms and Conditions is found by a court or other authority to be invalid and/or unenforceable under applicable law, such part or provision will be modified, deleted and/or enforced to the maximum extent permissible so as to give effect to the intent of these Terms and Conditions."
@@ -3404,26 +3407,26 @@ msgid "Our Plugins"
 msgstr ""
 
 #: gutenberg/build/index.js:1
-#: gutenberg/src/index.js:129
+#: gutenberg/src/index.js:140
 msgid "Legal document - Complianz Terms & conditions"
 msgstr ""
 
 #: gutenberg/build/index.js:1
-#: gutenberg/src/index.js:138
+#: gutenberg/src/index.js:149
 msgid "Terms & conditions"
 msgstr ""
 
 #: gutenberg/build/index.js:1
-#: gutenberg/src/index.js:59
+#: gutenberg/src/index.js:70
 msgid "Loading..."
 msgstr ""
 
 #: gutenberg/build/index.js:1
-#: gutenberg/src/index.js:82
+#: gutenberg/src/index.js:93
 msgid "Document settings"
 msgstr ""
 
 #: gutenberg/build/index.js:1
-#: gutenberg/src/index.js:89
+#: gutenberg/src/index.js:100
 msgid "Document sync status"
 msgstr ""

@@ -68,7 +68,7 @@ function cmplz_tc_set_default( $value, $fieldname ) {
 	}
 
 	// Pre-fill Cookie Policy URL from the Complianz base or premium plugin when installed.
-	if ( 'cookie_policy' === $fieldname && defined( 'cmplz_version' ) ) {
+	if ( 'cookie_policy' === $fieldname && defined( 'CMPLZ_VERSION' ) ) {
 		$default_region = COMPLIANZ::$company->get_default_region();
 		if ( defined( 'cmplz_premium' ) ) {
 			// Premium: use get_permalink() which supports redirect options (introduced post-4.9.7).
@@ -80,7 +80,7 @@ function cmplz_tc_set_default( $value, $fieldname ) {
 	}
 
 	// Mirror the company address already stored in the Complianz base plugin.
-	if ( 'address_company' === $fieldname && defined( 'cmplz_version' ) ) {
+	if ( 'address_company' === $fieldname && defined( 'CMPLZ_VERSION' ) ) {
 		$value = cmplz_get_value( 'address_company' );
 	}
 
@@ -125,7 +125,7 @@ function cmplz_tc_cookie_policy() {
 		cmplz_tc_sidebar_notice( __( 'Complianz GDPR/CCPA was detected, the Cookie Policy URL and Privacy Policy URL were prefilled based on your settings in Complianz', 'complianz-terms-conditions' ) );
 	}
 
-	if ( ! defined( 'cmplz_premium' ) && defined( 'cmplz_version' ) ) {
+	if ( ! defined( 'cmplz_premium' ) && defined( 'CMPLZ_VERSION' ) ) {
 		// Only the Cookie Policy URL was sourced from the free Complianz base plugin.
 		cmplz_tc_sidebar_notice( __( 'Complianz GDPR/CCPA was detected, the Cookie Policy URL was prefilled based on your settings in Complianz', 'complianz-terms-conditions' ) );
 	}

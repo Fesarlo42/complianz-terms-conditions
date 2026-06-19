@@ -47,12 +47,13 @@ Terms and Conditions, on the web, also known as Terms of Service or Terms of Use
 
 == Change log ==
 = 1.3.0 =
-* March 2026
-* Fix: updated Gutenberg block to API version 3 for WordPress 6.9+ iframe editor compatibility
-* Fix: security hardening in admin JavaScript (DOM XSS)
-* Improvement: upgraded mpdf to v8.2.7
-* Fix: deferred translation loading for WordPress 6.7 compatibility
-* Fix: code quality and static analysis improvements
+* March 24th, 2026
+* Improvement: raised minimum PHP requirement to 7.4.
+* Fix: updated Gutenberg block to API version 3 for WordPress 6.9+ iframe editor compatibility.
+* Fix: security hardening in admin JavaScript (DOM XSS).
+* Improvement: upgraded mpdf to v8.2.7.
+* Fix: deferred translation loading for WordPress 6.7 compatibility.
+* Fix: code quality and static analysis improvements.
 
 = 1.2.8 =
 * May 7th 2024

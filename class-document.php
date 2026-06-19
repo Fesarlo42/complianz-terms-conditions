@@ -914,8 +914,8 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 
 				$value = $labels;
 			} elseif ( isset( COMPLIANZ_TC::$config->fields[ $fieldname ]['options'] ) ) {
-					$options
-						= COMPLIANZ_TC::$config->fields[ $fieldname ]['options'];
+				$options = COMPLIANZ_TC::$config->fields[ $fieldname ]['options'];
+
 				if ( isset( $options[ $value ] ) ) {
 					$value = $options[ $value ];
 				}

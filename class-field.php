@@ -165,7 +165,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 		 */
 		public function label_html( $args ) {
 			?>
-			<label class="<?php	echo $args['disabled'] ? 'cmlz-disabled' : ''; ?>" for="<?php echo esc_attr( $args['fieldname'] ); ?>">
+			<label class="<?php	echo $args['disabled'] ? 'cmplz-disabled' : ''; ?>" for="cmplz_<?php echo esc_attr( $args['fieldname'] ); ?>">
 				<div class="cmplz-title-wrap"><?php echo esc_html( $args['label'] ); ?></div>
 				<div>
 					<?php
@@ -351,7 +351,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 				}
 
 				// Save data.
-				$posted_fields = array_filter( $_POST, array( $this, 'filter_complianz_tc_fields' ), ARRAY_FILTER_USE_KEY );
+				$posted_fields = array_filter( wp_unslash( $_POST ), array( $this, 'filter_complianz_tc_fields' ), ARRAY_FILTER_USE_KEY ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Values are sanitized per field type inside save_field() → sanitize().
 				foreach ( $posted_fields as $fieldname => $fieldvalue ) {
 					$this->save_field( $fieldname, $fieldvalue );
 				}
@@ -958,6 +958,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 				type="text"
 				value="<?php echo esc_html( $value ); ?>"
 				name="<?php echo esc_html( $fieldname ); ?>"
+				id="<?php echo esc_html( $fieldname ); ?>"
 			>
 			<?php echo $check_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from trusted internal helper. ?>
 			<?php echo $times_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from trusted internal helper. ?>
@@ -1005,6 +1006,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 				pattern="(http(s)?(:\/\/))?(www\.)?[\#a-zA-Z0-9\-_\.\/\:].*"
 				value="<?php echo esc_html( $value ); ?>"
 				name="<?php echo esc_html( $fieldname ); ?>"
+				id="<?php echo esc_html( $fieldname ); ?>"
 			>
 			<?php echo $check_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from trusted internal helper. ?>
 			<?php echo $times_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from trusted internal helper. ?>
@@ -1049,6 +1051,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 				type="email"
 				value="<?php echo esc_html( $value ); ?>"
 				name="<?php echo esc_html( $fieldname ); ?>"
+				id="<?php echo esc_html( $fieldname ); ?>"
 			>
 			<?php echo $check_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from trusted internal helper. ?>
 			<?php echo $times_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from trusted internal helper. ?>
@@ -1151,6 +1154,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 				type="number"
 				value="<?php echo esc_html( $value ); ?>"
 				name="<?php echo esc_html( $fieldname ); ?>"
+				id="<?php echo esc_html( $fieldname ); ?>"
 				min="<?php echo esc_attr( $args['minimum'] ); ?>" step="<?php echo isset( $args['validation_step'] ) ? intval( $args['validation_step'] ) : 1; ?>"
 				>
 			<?php do_action( 'complianz_tc_after_field', $args ); ?>
@@ -1311,6 +1315,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 							name="<?php echo esc_html( $fieldname ); ?>[<?php echo esc_attr( $option_key ); ?>]"
 							class="<?php echo esc_html( $fieldname ); ?>[<?php echo esc_attr( $option_key ); ?>]"
 							type="checkbox"
+							id="<?php echo esc_html( $fieldname ); ?>"
 							value="1"
 							<?php echo $value_index[ $option_key ]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Hardcoded 'checked' or empty string. ?>
 						>
@@ -1398,7 +1403,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 						<input
 							<?php echo $required; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Hardcoded attribute string. ?>
 								type="radio"
-								id="<?php echo esc_html( $option_value ); ?>"
+								id="<?php echo esc_html( $fieldname ); ?>"
 								name="<?php echo esc_html( $fieldname ); ?>"
 								class="<?php echo esc_html( $fieldname ); ?>"
 								value="<?php echo esc_html( $option_value ); ?>"
@@ -1649,7 +1654,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 			<?php do_action( 'complianz_tc_before_label', $args ); ?>
 			<?php do_action( 'complianz_tc_label_html', $args ); ?>
 			<?php do_action( 'complianz_tc_after_label', $args ); ?>
-			<textarea name="<?php echo esc_html( $fieldname ); ?>"
+			<textarea name="<?php echo esc_html( $fieldname ); ?>" id="<?php echo esc_html( $fieldname ); ?>"
 						<?php
 						if ( $args['required'] ) {
 							echo 'required';
@@ -2073,7 +2078,7 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 				echo 'required';
 			}
 			?>
-			name="<?php echo esc_html( $fieldname ); ?>">
+			name="<?php echo esc_html( $fieldname ); ?>" id="<?php echo esc_attr( $fieldname ); ?>">
 				<option value="">
 				<?php
 				esc_html_e(
