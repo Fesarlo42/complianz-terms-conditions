@@ -5,7 +5,7 @@ Requires at least: 5.0
 License: GPL3
 Requires PHP: 7.4
 Tested up to: 6.9
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 
 Configure your own Terms and Conditions specific to your service or webshop.
 
@@ -46,6 +46,12 @@ The Terms & Conditions have their own [CSS classes](https://complianz.io/styling
 Terms and Conditions, on the web, also known as Terms of Service or Terms of Use, is an agreement explaining the terms, rules, and guidelines to which a user must agree before entering a contractual relationship with the website owner.
 
 == Change log ==
+= 1.3.1 =
+* June 19th, 2026
+* Improvement: simplified the withdrawal section (EU Directive 2023/2673) - users now provide a link to their own withdrawal function, which is required.
+* Improvement: updated the right of withdrawal text and removed references to the model/paper withdrawal form.
+* Fix: required fields with a display condition are now correctly enforced when their condition applies.
+
 = 1.3.0 =
 * March 24th, 2026
 * Improvement: raised minimum PHP requirement to 7.4.
