@@ -4,7 +4,7 @@ Tags: terms, conditions, webshop, legal, terms and conditions
 Requires at least: 5.0
 License: GPL3
 Requires PHP: 7.4
-Tested up to: 6.9
+Tested up to: 7.0
 Stable tag: 1.3.1
 
 Configure your own Terms and Conditions specific to your service or webshop.
@@ -51,6 +51,8 @@ Terms and Conditions, on the web, also known as Terms of Service or Terms of Use
 * Improvement: simplified the withdrawal section (EU Directive 2023/2673) - users now provide a link to their own withdrawal function, which is required.
 * Improvement: updated the right of withdrawal text and removed references to the model/paper withdrawal form.
 * Fix: required fields with a display condition are now correctly enforced when their condition applies.
+* Improvement: tested and confirmed compatible with WordPress 7.0.
+* Fix: replaced a deprecated jQuery .hover() call in the admin script, removing a jQuery Migrate deprecation notice on WordPress 7.0 (jQuery 3.7).
 
 = 1.3.0 =
 * March 24th, 2026
