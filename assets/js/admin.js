@@ -24,10 +24,10 @@ jQuery(document).ready(function ($) {
     });
 
     // Color bullet in support forum block
-    $(".cmplz-trick a").hover(function() {
+    $(".cmplz-trick a").on("mouseenter", function() {
         $(this).find('.cmplz-bullet').css("background-color","#009fff");
         $(this).find('.cmplz-trick a, .cmplz-tips-tricks-content').css("color","#009fff");
-    }, function() {
+    }).on("mouseleave", function() {
         $(this).find('.cmplz-bullet').css("background-color",""); //to remove property set it to ''
         $(this).find('.cmplz-trick a, .cmplz-tips-tricks-content').css("color","");
     });

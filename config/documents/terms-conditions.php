@@ -192,31 +192,35 @@ $this->pages['all']['terms-conditions']['document_elements'] = array(
 		),
 	),
 
-	// PDF.
+	/*
+	 * Fast fix (EU Directive 2023/2673): users must point to their own withdrawal
+	 * function. This "our form" variant is kept for the upcoming built-in withdrawal
+	 * form feature but is disabled for now via a sentinel condition value that never
+	 * matches a stored answer (the if_returns_custom choice is hidden in this fix).
+	 */
 	array(
-		'content'   => _x( 'To exercise the right of withdrawal, you must inform us of your decision to withdraw from this contract by an unequivocal statement (for example a letter sent by post, fax, or email).', 'Legal document', 'complianz-terms-conditions' ) . '&nbsp;' .
-						_x( 'Our contact details can be found below.', 'Legal document', 'complianz-terms-conditions' ) . '&nbsp;' .
-							// translators: %1$s is the opening anchor tag for the withdrawal form, %2$s is the closing anchor tag.
-							sprintf( _x( 'You may use the attached model %1$swithdrawal form%2$s, but it is not obligatory.', 'Legal document', 'complianz-terms-conditions' ), '<a target="_blank" href="[withdrawal_form_link]">', '</a>' ),
+		'content'   => _x( 'To exercise your right of withdrawal, you must inform us of your decision to withdraw from this contract by an unequivocal statement.', 'Legal document', 'complianz-terms-conditions' ) . '&nbsp;' .
+							// translators: %1$s is the opening anchor tag for the withdrawal function link, %2$s is the closing anchor tag.
+							sprintf( _x( 'To this end, you may use the %1$swithdrawal function available%2$s.', 'Legal document', 'complianz-terms-conditions' ), '<a target="_blank" href="[withdrawal_form_link]">', '</a>' ) . '&nbsp;' .
+							_x( 'You are, however, free to express your intention to withdraw from the contract by making an unequivocal statement in any other suitable way.', 'Legal document', 'complianz-terms-conditions' ),
 		'condition' => array(
 			'if_returns'        => 'yes',
-			'if_returns_custom' => 'no',
+			'if_returns_custom' => 'disabled',
 		),
 	),
 
 
 	array(
-		'content'   => _x( 'To exercise the right of withdrawal, you must inform us of your decision to withdraw from this contract by an unequivocal statement (for example a letter sent by post, fax, or email).', 'Legal document', 'complianz-terms-conditions' ) . '&nbsp;' .
-									_x( 'Our contact details can be found below.', 'Legal document', 'complianz-terms-conditions' ) . '&nbsp;' .
-								// translators: %1$s is the opening anchor tag for the custom withdrawal form, %2$s is the closing anchor tag.
-								sprintf( _x( 'You may use the attached model %1$swithdrawal form%2$s, but it is not obligatory.', 'Legal document', 'complianz-terms-conditions' ), '[if_returns_custom_link]', '</a>' ),
-
-		'condition' => array( 'if_returns_custom' => 'yes' ),
+		'content'   => _x( 'To exercise your right of withdrawal, you must inform us of your decision to withdraw from this contract by an unequivocal statement.', 'Legal document', 'complianz-terms-conditions' ) . '&nbsp;' .
+							// translators: %1$s is the opening anchor tag for the withdrawal function link, %2$s is the closing anchor tag.
+							sprintf( _x( 'To this end, you may use the %1$swithdrawal function available%2$s.', 'Legal document', 'complianz-terms-conditions' ), '[if_returns_custom_link]', '[/if_returns_custom_link]' ) . '&nbsp;' .
+							_x( 'You are, however, free to express your intention to withdraw from the contract by making an unequivocal statement in any other suitable way.', 'Legal document', 'complianz-terms-conditions' ),
+		'condition' => array( 'if_returns' => 'yes' ),
 	),
 
 	array(
 		// translators: %1$s is the opening anchor tag for the company website, %2$s is the closing anchor tag.
-		'content'   => sprintf( _x( 'You can also electronically fill in and submit the model withdrawal form or any other unequivocal statement on our %1$s website%2$s.', 'Legal document', 'complianz-terms-conditions' ), '[page_company]', '[/page_company]' ),
+		'content'   => sprintf( _x( 'You can also submit any other unequivocal statement on our %1$s website%2$s.', 'Legal document', 'complianz-terms-conditions' ), '[page_company]', '[/page_company]' ),
 		'condition' => array(
 			'if_returns'      => 'yes',
 			'contact_company' => 'NOT manually',

@@ -548,8 +548,11 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 			$required   = isset( $fields[ $fieldname ]['required'] ) ? $fields[ $fieldname ]['required'] : false;
 			$fieldvalue = $this->sanitize( $fieldvalue, $type );
 
-			if ( ! $this->is_conditional( $fieldname ) && $required
-				&& empty( $fieldvalue )
+			// A required field is enforced only when it is actually shown: either it is
+			// unconditional, or its condition currently applies. condition_applies()
+			// returns true for fields without a condition, so it covers both cases.
+			if ( $required && empty( $fieldvalue )
+				&& $this->condition_applies( $fields[ $fieldname ] )
 			) {
 				$this->form_errors[] = $fieldname;
 			}

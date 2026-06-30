@@ -221,6 +221,24 @@ if ( ! class_exists( 'cmplz_tc_admin' ) ) {
 				update_option( 'cmplz_tc_documents_update_date', get_option( 'cmplz_tc_documents_update_date' ) );
 			}
 
+			if ( $prev_version
+				&& version_compare( $prev_version, '1.3.1', '<' )
+			) {
+				// Migration for < 1.3.1 (EU Directive 2023/2673): clear stored withdrawal
+				// links that point to our own default/generated PDF, so users are prompted
+				// to add a real withdrawal-function link. Deliberate custom links are kept.
+				$options = get_option( 'complianz_tc_options_terms-conditions' );
+				if ( is_array( $options ) && ! empty( $options['if_returns_custom_link'] ) ) {
+					$link = $options['if_returns_custom_link'];
+					if ( false !== strpos( $link, 'custom-withdrawal-form.pdf' )
+						|| false !== strpos( $link, '/complianz/withdrawal-forms/withdrawal-form-' )
+					) {
+						$options['if_returns_custom_link'] = '';
+						update_option( 'complianz_tc_options_terms-conditions', $options );
+					}
+				}
+			}
+
 			/**
 			 * Fires after version-specific upgrade routines have been applied.
 			 *

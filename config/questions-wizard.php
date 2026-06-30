@@ -510,6 +510,13 @@ $this->fields = $this->fields + array(
 		'label'   => __( 'Do you offer returns of goods or the withdrawal of services?', 'complianz-terms-conditions' ),
 	),
 
+	/*
+	 * Fast fix (EU Directive 2023/2673): the choice between our generated PDF and a
+	 * user-supplied link is hidden for now. Users must always provide their own
+	 * withdrawal function link (see if_returns_custom_link below). This question is
+	 * kept here, commented out, to be restored when the built-in withdrawal form
+	 * feature is implemented.
+	 *
 	// Whether to use a custom withdrawal form instead of the auto-generated PDF.
 	'if_returns_custom'           => array(
 		'step'    => 2,
@@ -521,17 +528,22 @@ $this->fields = $this->fields + array(
 		'tooltip' => __( 'We will add a standard, translatable form to this paragraph. To use your own, you can add the link below.', 'complianz-terms-conditions' ),
 		'label'   => __( 'Do you want to use a custom withdrawal form?', 'complianz-terms-conditions' ),
 	),
+	*/
 
-	// URL of the custom withdrawal form PDF; shown when if_returns_custom = 'yes'.
+	// Link to the user's own withdrawal function; required and always shown when returns are offered.
+	// The EU Directive 2023/2673 notice is rendered as a sidebar notice via the 'help' argument.
 	'if_returns_custom_link'      => array(
 		'step'      => 2,
 		'section'   => 5,
 		'source'    => 'terms-conditions',
-		'default'   => home_url( '/wp-content/uploads/custom-withdrawal-form.pdf' ),
+		'required'  => true,
+		'default'   => '',
 		'type'      => 'url',
-		'label'     => __( 'Add the URL for your custom withdrawal form', 'complianz-terms-conditions' ),
+		'label'     => __( 'Add the link to your withdrawal function', 'complianz-terms-conditions' ),
+		'tooltip'   => __( 'Add the link to your own withdrawal function. This link will be shown in your Terms & Conditions so users can exercise their right of withdrawal.', 'complianz-terms-conditions' ),
+		'help'      => __( 'Following EU Directive 2023/2673 (effective 19 June 2026), you must offer consumers an easy-to-use online withdrawal function for distance contracts. Adding the link to your withdrawal function is now required.', 'complianz-terms-conditions' ),
 		'condition' => array(
-			'if_returns_custom' => 'yes',
+			'if_returns' => 'yes',
 		),
 	),
 
