@@ -129,7 +129,6 @@ if ( ! class_exists( 'cmplz_tc_wizard' ) ) {
 			// process custom hooks.
 			add_action( 'admin_init', array( $this, 'process_custom_hooks' ) );
 			add_action( 'complianz_tc_before_save_terms-conditions_option', array( $this, 'before_save_wizard_option' ), 10, 4 );
-			add_action( 'complianz_tc_after_save_terms-conditions_option', array( $this, 'after_save_wizard_option' ), 10, 4 );
 			add_action( 'cmplz_tc_after_saved_all_fields', array( $this, 'after_saved_all_fields' ), 10, 1 );
 			add_action( 'cmplz_tc_last_step', array( $this, 'last_step_callback' ) );
 		}
@@ -304,48 +303,6 @@ if ( ! class_exists( 'cmplz_tc_wizard' ) ) {
 		 * @return void
 		 */
 		public function after_saved_all_fields( $posted_fields ) {
-		}
-
-		/**
-		 * Reacts to individual wizard field saves to keep dependent data up to date.
-		 *
-		 * Currently handles language-related fields: when `language_communication`,
-		 * `address_company`, or `multilanguage_communication` changes, the list of
-		 * languages for which PDFs should be generated is refreshed. This ensures
-		 * withdrawal forms and other locale-specific PDFs are regenerated in the
-		 * correct languages after a language change.
-		 *
-		 * @since  1.0.0
-		 * @access public
-		 *
-		 * @param string $fieldname  The name of the field that was just saved.
-		 * @param mixed  $fieldvalue The new saved value.
-		 * @param mixed  $prev_value The value before the save.
-		 * @param string $type       The field type identifier.
-		 * @return void
-		 */
-		public function after_save_wizard_option( $fieldname, $fieldvalue, $prev_value, $type ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Required by the complianz_tc_after_save hook signature.
-			// Only run when changes have been made.
-			if ( $fieldvalue === $prev_value ) {
-				return;
-			}
-
-			// if languages have been changed, we update the withdrawal form, if those should be generated.
-			if ( 'language_communication' === $fieldname || 'address_company' === $fieldname || 'multilanguage_communication' === $fieldname ) {
-				$languages = cmplz_tc_get_value( 'multilanguage_communication' );
-				if ( ! empty( $languages ) ) {
-					// Filter out empty values before storing the active language list.
-					$languages = array_filter( $languages );
-					update_option( 'cmplz_generate_pdf_languages', $languages );
-				}
-			}
-
-			// When only the primary language changes, reset the PDF language list to that single locale.
-			if ( 'language_communication' === $fieldname ) {
-				$languages = array( cmplz_tc_sanitize_language( get_locale() ) );
-				$languages = array_filter( $languages );
-				update_option( 'cmplz_generate_pdf_languages', $languages );
-			}
 		}
 
 		/**

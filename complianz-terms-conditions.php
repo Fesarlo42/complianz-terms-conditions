@@ -327,33 +327,17 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 /**
  * Runs first-time setup tasks when the plugin is activated.
  *
- * Seeds the `cmplz_generate_pdf_languages` option with the current WordPress
- * site locale so a PDF is generated for the active language on first use.
- * Also sets a short-lived transient that triggers a redirect to the plugin
- * settings page immediately after activation, giving users a smooth onboarding
+ * Sets a short-lived transient that triggers a redirect to the plugin settings
+ * page immediately after activation, giving users a smooth onboarding
  * experience.
- *
- * The language seeding is guarded with a get_option() check so it only runs
- * once; subsequent activations (e.g. after deactivate/reactivate) do not
- * overwrite any languages the user may have added.
  *
  * @since  1.0.0
  *
- * @see    cmplz_tc_sanitize_language()
  * @see    register_activation_hook()
  *
  * @return void
  */
 function cmplz_tc_activation() {
-	// Seed the PDF languages list only on the very first activation.
-	if ( ! get_option( 'cmplz_generate_pdf_languages' ) ) {
-		// Build a map of sanitised locale → 1 (enabled) for the site's current locale.
-		$languages = array( cmplz_tc_sanitize_language( get_locale() ) => 1 );
-		// Remove any empty keys that result from an unrecognised locale format.
-		// @phpstan-ignore-next-line -- The value may be an empty string if the locale format is unrecognised.
-		$languages = array_filter( $languages );
-		update_option( 'cmplz_generate_pdf_languages', $languages );
-	}
 	// Set a transient consumed by the admin redirect handler to forward the user to settings.
 	set_transient( 'cmplz_tc_redirect_to_settings', true, DAY_IN_SECONDS );
 }

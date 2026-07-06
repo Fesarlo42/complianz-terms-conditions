@@ -969,7 +969,6 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 			add_action( 'save_post', array( $this, 'save_metabox_data' ), 10, 3 );
 			add_action( 'wp_ajax_cmplz_tc_create_pages', array( $this, 'ajax_create_pages' ) );
-			add_action( 'admin_init', array( $this, 'maybe_generate_withdrawal_form' ) );
 			add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 			add_action( 'cmplz_documents_overview', array( $this, 'add_docs_to_cmplz_dashboard' ) );
 
@@ -1272,126 +1271,62 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		}
 
 		/**
-		 * Generate a pending withdrawal form PDF for the next queued language.
+		 * Generate a PDF from HTML using mPDF and stream it to the browser.
 		 *
-		 * Hooked into 'admin_init'. Reads the 'cmplz_generate_pdf_languages' option,
-		 * pops the first language off the queue, updates the option, and delegates
-		 * to generate_withdrawal_form(). Processing one language per request prevents
-		 * timeout issues when multiple languages are queued.
+		 * Builds the document via build_pdf() (which sanitises the HTML with
+		 * wp_kses() and renders it with mPDF) and streams it as a download
+		 * (output mode 'D'). Used by the Terms & Conditions download endpoint
+		 * (download.php).
 		 *
 		 * @since  1.0.0
 		 * @access public
 		 *
-		 * @see    cmplz_tc_document::generate_withdrawal_form()
+		 * @see    cmplz_tc_document::build_pdf()
 		 *
-		 * @throws \Mpdf\MpdfException  When mPDF encounters an error during PDF generation.
+		 * @throws \Mpdf\MpdfException  When mPDF encounters a configuration or rendering error.
 		 *
+		 * @param  string $html   HTML content to render as PDF. Sanitised internally.
+		 * @param  string $title  Document title used for the PDF <title> tag, the
+		 *                        page footer, and the download filename.
 		 * @return void
 		 */
-		public function maybe_generate_withdrawal_form() {
-			$languages_to_generate = get_option( 'cmplz_generate_pdf_languages' );
-			if ( ! empty( $languages_to_generate ) ) {
-				$languages = $languages_to_generate;
-				reset( $languages );
-				$language_to_generate = key( $languages );
-				unset( $languages_to_generate[ $language_to_generate ] );
-				update_option( 'cmplz_generate_pdf_languages', $languages_to_generate );
-				$this->generate_withdrawal_form( $language_to_generate );
+		public function generate_pdf( $html, $title ) {
+			$mpdf = $this->build_pdf( $html, $title );
+			if ( ! $mpdf ) {
+				return;
 			}
+			$mpdf->Output( sanitize_title( $title ) . '.pdf', 'D' );
 		}
 
 		/**
-		 * Generate the withdrawal form PDF for a specific locale and save to disk.
+		 * Build a rendered mPDF document from HTML, ready to output.
 		 *
-		 * Switches the WordPress locale, renders the withdrawal-form.php template,
-		 * replaces the '[address_company]' placeholder, and passes the result to
-		 * generate_pdf(). Requires the user to be logged in with 'manage_options'
-		 * capability; terminates execution with die() otherwise.
+		 * Sanitises the HTML with wp_kses(), creates the required uploads
+		 * subdirectories on the fly, configures mPDF (margins, title, footer),
+		 * and writes the HTML into the document. Kept separate from generate_pdf()
+		 * so the rendering can be exercised without streaming to the browser.
+		 * Uses a stored token for the mPDF temp directory to avoid conflicts
+		 * between requests.
 		 *
-		 * @since  1.0.0
-		 * @access public
-		 *
-		 * @see    cmplz_tc_document::generate_pdf()
-		 *
-		 * @throws \Mpdf\MpdfException  When mPDF encounters an error during PDF generation.
-		 *
-		 * @param  string $locale  WordPress locale string, e.g. 'en_US', 'nl_NL'.
-		 *                         Default: 'en_US'.
-		 * @return void
-		 */
-		public function generate_withdrawal_form( $locale = 'en_US' ) {
-			if ( ! is_user_logged_in() ) {
-				die( 'invalid command' );
-			}
-
-			if ( ! current_user_can( 'manage_options' ) ) {
-				die( 'invalid command' );
-			}
-			switch_to_locale( $locale );
-			$title         = __( 'Withdrawal Form', 'complianz-terms-conditions' );
-			$document_html = cmplz_tc_get_template( 'withdrawal-form.php' );
-			$document_html = str_replace( '[address_company]', cmplz_tc_get_value( 'address_company' ), $document_html );
-			$file_title    = sanitize_file_name( 'withdrawal-form-' . $locale );
-
-			$this->generate_pdf( $document_html, $title, $file_title );
-		}
-
-		/**
-		 * Generate a PDF from HTML using mPDF, saving to disk or streaming to the browser.
-		 *
-		 * Sanitises the HTML with wp_kses() before passing it to mPDF. When $file_title
-		 * is provided the PDF is written to the uploads/complianz/withdrawal-forms/
-		 * directory (output mode 'F'). When omitted the PDF is streamed as a download
-		 * (output mode 'D'). File-save operations require the user to be logged in with
-		 * 'manage_options' capability. Required subdirectories are created on the fly
-		 * when they do not exist. Uses a stored token for the mPDF temp directory to
-		 * avoid conflicts between requests.
-		 *
-		 * @since  1.0.0
-		 * @access public
+		 * @since  1.4.0
+		 * @access private
 		 *
 		 * @see    cmplz_tc_allowed_html()
 		 *
 		 * @throws \Mpdf\MpdfException  When mPDF encounters a configuration or rendering error.
 		 *
-		 * @param  string       $html        HTML content to render as PDF. Sanitised internally.
-		 * @param  string       $title       Document title used for the PDF <title> tag and
-		 *                                   the page footer.
-		 * @param  string|false $file_title  Filename (without extension) when saving to disk.
-		 *                                   When false, the PDF is streamed to the browser.
-		 *                                   Default: false.
-		 * @return void
+		 * @param  string $html   HTML content to render as PDF. Sanitised internally.
+		 * @param  string $title  Document title used for the PDF <title> tag and page footer.
+		 * @return \Mpdf\Mpdf|false  The written mPDF instance, or false when the uploads
+		 *                           directory is not writable.
 		 */
-		public function generate_pdf( $html, $title, $file_title = false ) {
-			$html         = wp_kses( $html, cmplz_tc_allowed_html() );
-			$title        = sanitize_text_field( $title );
-			$file_title   = sanitize_file_name( $file_title );
-			$error        = false;
-			$temp_dir     = false;
-			$save_dir     = false;
-			$uploads      = wp_upload_dir();
-			$upload_dir   = $uploads['basedir'];
-			$save_to_file = true;
-			if ( ! $file_title ) {
-				$save_to_file = false;
-			}
+		private function build_pdf( $html, $title ) {
+			$html       = wp_kses( $html, cmplz_tc_allowed_html() );
+			$title      = sanitize_text_field( $title );
+			$uploads    = wp_upload_dir();
+			$upload_dir = $uploads['basedir'];
 
-			// Saving only for logged in users.
-			if ( $save_to_file ) {
-				if ( ! is_user_logged_in() ) {
-					die( 'invalid command' );
-				}
-
-				if ( ! current_user_can( 'manage_options' ) ) {
-					die( 'invalid command' );
-				}
-			}
-
-			// ==============================================================
-			// ==============================================================
-			// ==============================================================
-
-			require cmplz_tc_path . '/assets/vendor/autoload.php';
+			require_once cmplz_tc_path . '/assets/vendor/autoload.php';
 
 			// Generate a token when it's not there, otherwise use the existing one.
 			if ( get_option( 'cmplz_pdf_dir_token' ) ) {
@@ -1402,56 +1337,42 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			}
 
 			if ( ! is_writable( $upload_dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- WP_Filesystem does not provide a reliable writable check for this use case.
-				$error = true;
+				return false;
 			}
 
-			if ( ! $error ) {
-				if ( ! file_exists( $upload_dir . '/complianz' ) ) {
-					mkdir( $upload_dir . '/complianz' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Directory created in uploads; WP_Filesystem not available in this context.
-				}
-				if ( ! file_exists( $upload_dir . '/complianz/tmp' ) ) {
-					mkdir( $upload_dir . '/complianz/tmp' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Directory created in uploads; WP_Filesystem not available in this context.
-				}
-				if ( ! file_exists( $upload_dir . '/complianz/withdrawal-forms' ) ) {
-					mkdir( $upload_dir . '/complianz/withdrawal-forms' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Directory created in uploads; WP_Filesystem not available in this context.
-				}
-				$save_dir = $upload_dir . '/complianz/withdrawal-forms/';
-				$temp_dir = $upload_dir . '/complianz/tmp/' . $token;
-				if ( ! file_exists( $temp_dir ) ) {
-					mkdir( $temp_dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Directory created in uploads; WP_Filesystem not available in this context.
-				}
+			if ( ! file_exists( $upload_dir . '/complianz' ) ) {
+				mkdir( $upload_dir . '/complianz' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Directory created in uploads; WP_Filesystem not available in this context.
 			}
-			if ( ! $error ) {
-				$mpdf = new Mpdf\Mpdf(
-					array(
-						'setAutoTopMargin'  => 'stretch',
-						'autoMarginPadding' => 5,
-						'tempDir'           => $temp_dir,
-						'margin_left'       => 20,
-						'margin_right'      => 20,
-						'margin_top'        => 30,
-						'margin_bottom'     => 30,
-						'margin_header'     => 30,
-						'margin_footer'     => 10,
-					)
-				);
-
-				$mpdf->SetDisplayMode( 'fullpage' );
-				$mpdf->SetTitle( $title );
-				$date        = date_i18n( get_option( 'date_format' ), time() );
-				$footer_text = sprintf( "%s $title $date", get_bloginfo( 'name' ) );
-				$mpdf->SetFooter( $footer_text );
-				$mpdf->WriteHTML( $html );
-
-				// Save the pages to a file.
-				if ( $save_to_file ) {
-					$file_title = $save_dir . $file_title;
-				} else {
-					$file_title = sanitize_title( $title );
-				}
-				$output_mode = $save_to_file ? 'F' : 'D';
-				$mpdf->Output( $file_title . '.pdf', $output_mode );
+			if ( ! file_exists( $upload_dir . '/complianz/tmp' ) ) {
+				mkdir( $upload_dir . '/complianz/tmp' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Directory created in uploads; WP_Filesystem not available in this context.
 			}
+			$temp_dir = $upload_dir . '/complianz/tmp/' . $token;
+			if ( ! file_exists( $temp_dir ) ) {
+				mkdir( $temp_dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Directory created in uploads; WP_Filesystem not available in this context.
+			}
+
+			$mpdf = new Mpdf\Mpdf(
+				array(
+					'setAutoTopMargin'  => 'stretch',
+					'autoMarginPadding' => 5,
+					'tempDir'           => $temp_dir,
+					'margin_left'       => 20,
+					'margin_right'      => 20,
+					'margin_top'        => 30,
+					'margin_bottom'     => 30,
+					'margin_header'     => 30,
+					'margin_footer'     => 10,
+				)
+			);
+
+			$mpdf->SetDisplayMode( 'fullpage' );
+			$mpdf->SetTitle( $title );
+			$date        = date_i18n( get_option( 'date_format' ), time() );
+			$footer_text = sprintf( "%s $title $date", get_bloginfo( 'name' ) );
+			$mpdf->SetFooter( $footer_text );
+			$mpdf->WriteHTML( $html );
+
+			return $mpdf;
 		}
 
 		/**

@@ -239,6 +239,17 @@ if ( ! class_exists( 'cmplz_tc_admin' ) ) {
 				}
 			}
 
+			if ( $prev_version
+				&& version_compare( $prev_version, '1.4.0', '<' )
+			) {
+				// Migration for < 1.4.0 (EU Directive 2023/2673): the legacy withdrawal-form
+				// PDF generation has been removed. Drop its language queue option and purge
+				// any stale generated withdrawal PDFs. The Terms & Conditions document PDF
+				// (generate_pdf + download.php) is unaffected.
+				delete_option( 'cmplz_generate_pdf_languages' );
+				$this->remove_withdrawal_pdf_dir();
+			}
+
 			/**
 			 * Fires after version-specific upgrade routines have been applied.
 			 *
@@ -252,6 +263,37 @@ if ( ! class_exists( 'cmplz_tc_admin' ) ) {
 
 			// Persist the current version so future requests can detect upgrades.
 			update_option( 'cmplz-tc-current-version', cmplz_tc_version );
+		}
+
+		/**
+		 * Delete the legacy generated-withdrawal-forms directory and its PDFs.
+		 *
+		 * The directory (uploads/complianz/withdrawal-forms/) only ever held the
+		 * now-removed withdrawal-form PDFs, so it can be purged wholesale. Uses
+		 * WP's wp_delete_file() for the files and a direct rmdir() for the empty
+		 * directory (WordPress provides no filesystem helper for that). Missing
+		 * directories are a no-op.
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 *
+		 * @return void
+		 */
+		private function remove_withdrawal_pdf_dir() {
+			$uploads        = wp_upload_dir();
+			$withdrawal_dir = trailingslashit( $uploads['basedir'] ) . 'complianz/withdrawal-forms';
+
+			if ( ! is_dir( $withdrawal_dir ) ) {
+				return;
+			}
+
+			foreach ( (array) glob( $withdrawal_dir . '/*' ) as $file ) {
+				if ( is_file( $file ) ) {
+					wp_delete_file( $file );
+				}
+			}
+
+			rmdir( $withdrawal_dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Removing an empty uploads subdirectory; WP_Filesystem is not reliably available in the upgrade context.
 		}
 
 		/**
