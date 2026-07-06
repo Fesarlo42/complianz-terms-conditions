@@ -1,5 +1,6 @@
 {
     "require-dev": {
+        "php": ">=7.4",
         "phpunit/phpunit": "^9",
         "yoast/phpunit-polyfills": "^1.0",
         "wp-cli/wp-cli-bundle": "^2.7",
@@ -7,7 +8,8 @@
         "squizlabs/php_codesniffer": "^3.13",
         "wp-coding-standards/wpcs": "^3.3",
         "phpstan/phpstan": "^2.1",
-        "szepeviktor/phpstan-wordpress": "^2.0"
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "php-stubs/wordpress-stubs": "^6.8"
     },
     "config": {
         "allow-plugins": {
@@ -15,9 +17,12 @@
         }
     },
     "scripts": {
-        "php:report": "phpcs --standard=WordPress --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/*,*/tests/*,phpstan-bootstrap.php --extensions=php -s -v --report=full .",
-        "php:report:fix": "phpcbf --standard=WordPress --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/*,*/tests/*,phpstan-bootstrap.php --extensions=php .",
+        "phpunit": "vendor/bin/phpunit",
+        "test": "vendor/bin/phpunit",
+        "phpstan": "vendor/bin/phpstan analyse -c phpstan.neon --memory-limit=-1",
+        "php:lint:report": "vendor/bin/phpcs --standard=./phpcs-security.xml --report=source",
+        "php:lint:autofix": "vendor/bin/phpcbf --standard=./phpcs.xml",
         "php-compatibility": "vendor/bin/phpcs -p --report=code --extensions=php --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/*,*/tests/*,phpstan-bootstrap.php --standard=vendor/phpcompatibility/php-compatibility/PHPCompatibility --runtime-set testVersion 7.4-8.4 .",
-        "phpstan:analyse": "vendor/bin/phpstan analyse --memory-limit=-1"
+        "php:lint:report-all": "vendor/bin/phpcs --standard=./phpcs-security.xml --report=full --extensions=php --ignore=*/vendor/*,*/node_modules/*,*/build/*,*/dist/*,*/tests/*,phpstan-bootstrap.php --error-severity=5 --warning-severity=5 -s -v ."
     }
 }
