@@ -228,7 +228,7 @@ $this->fields = $this->fields + array(
 $this->fields = $this->fields + array(
 
 	// Whether the site operates a webshop; pre-filled when WooCommerce/EDD is active.
-	'webshop_content'             => array(
+	'webshop_content'               => array(
 		'step'     => 2,
 		'section'  => 1,
 		'source'   => 'terms-conditions',
@@ -239,7 +239,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether visitors can register an account on the site.
-	'account_content'             => array(
+	'account_content'               => array(
 		'step'     => 2,
 		'section'  => 1,
 		'source'   => 'terms-conditions',
@@ -252,7 +252,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Shown when account_content = 'yes'; adds an account-suspension/deletion paragraph.
-	'delete'                      => array(
+	'delete'                        => array(
 		'step'      => 2,
 		'section'   => 1,
 		'source'    => 'terms-conditions',
@@ -268,7 +268,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether the site participates in affiliate marketing programs.
-	'affiliate_content'           => array(
+	'affiliate_content'             => array(
 		'step'     => 2,
 		'section'  => 1,
 		'source'   => 'terms-conditions',
@@ -281,7 +281,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether visitors can post user-generated content (reviews, forum posts, comments).
-	'forum_content'               => array(
+	'forum_content'                 => array(
 		'step'     => 2,
 		'section'  => 1,
 		'source'   => 'terms-conditions',
@@ -294,7 +294,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether to add a WCAG/accessibility reference paragraph.
-	'accessibility_content'       => array(
+	'accessibility_content'         => array(
 		'step'     => 2,
 		'section'  => 1,
 		'source'   => 'terms-conditions',
@@ -308,7 +308,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether the site specifically targets minors; triggers the minimum_age field below.
-	'age_content'                 => array(
+	'age_content'                   => array(
 		'step'     => 2,
 		'section'  => 1,
 		'source'   => 'terms-conditions',
@@ -320,7 +320,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Shown when age_content = 'yes'; adds a legal-guardian consent paragraph.
-	'minimum_age'                 => array(
+	'minimum_age'                   => array(
 		'step'      => 2,
 		'section'   => 1,
 		'source'    => 'terms-conditions',
@@ -338,7 +338,7 @@ $this->fields = $this->fields + array(
 	// -----------------------------------------------------------------------
 
 	// Whether to add an electronic-communication paragraph (e.g. email is "in writing").
-	'electronic_communication'    => array(
+	'electronic_communication'      => array(
 		'step'     => 2,
 		'section'  => 2,
 		'source'   => 'terms-conditions',
@@ -354,7 +354,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether the site sends marketing newsletters (excludes transactional email).
-	'newsletter_communication'    => array(
+	'newsletter_communication'      => array(
 		'step'     => 2,
 		'section'  => 2,
 		'source'   => 'terms-conditions',
@@ -367,7 +367,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether to include a force-majeure liability-exclusion paragraph.
-	'majeure_communication'       => array(
+	'majeure_communication'         => array(
 		'step'     => 2,
 		'section'  => 2,
 		'source'   => 'terms-conditions',
@@ -380,7 +380,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether changes to the T&C will be announced in writing before taking effect.
-	'notice_communication'        => array(
+	'notice_communication'          => array(
 		'step'     => 2,
 		'section'  => 2,
 		'source'   => 'terms-conditions',
@@ -392,7 +392,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether to limit the governing language to the current site language.
-	'language_communication'      => array(
+	'language_communication'        => array(
 		'step'     => 2,
 		'section'  => 2,
 		'source'   => 'terms-conditions',
@@ -405,7 +405,7 @@ $this->fields = $this->fields + array(
 
 	// Shown when language_communication = 'no'; lists all languages the document is available in.
 	// Pre-filled from WPML/Polylang when a multilanguage plugin is active.
-	'multilanguage_communication' => array(
+	'multilanguage_communication'   => array(
 		'step'      => 2,
 		'section'   => 2,
 		'source'    => 'terms-conditions',
@@ -426,7 +426,7 @@ $this->fields = $this->fields + array(
 	// -----------------------------------------------------------------------
 
 	// Whether the site offers professional advice; affects the disclaimer paragraph.
-	'sensitive_liability'         => array(
+	'sensitive_liability'           => array(
 		'step'     => 2,
 		'section'  => 3,
 		'source'   => 'terms-conditions',
@@ -439,7 +439,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether to cap liability at a fixed monetary amount.
-	'max_liability'               => array(
+	'max_liability'                 => array(
 		'step'     => 2,
 		'section'  => 3,
 		'source'   => 'terms-conditions',
@@ -452,7 +452,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Shown when max_liability = 'yes'; the fixed liability cap (e.g. "$1000").
-	'about_liability'             => array(
+	'about_liability'               => array(
 		'step'        => 2,
 		'section'     => 3,
 		'source'      => 'terms-conditions',
@@ -470,7 +470,7 @@ $this->fields = $this->fields + array(
 	// -----------------------------------------------------------------------
 
 	// Intellectual property licensing choice for original content on the site.
-	'about_copyright'             => array(
+	'about_copyright'               => array(
 		'step'     => 2,
 		'section'  => 4,
 		'source'   => 'terms-conditions',
@@ -499,7 +499,7 @@ $this->fields = $this->fields + array(
 	// -----------------------------------------------------------------------
 
 	// Whether to add a returns/withdrawal-of-service section (mandatory for EU webshops).
-	'if_returns'                  => array(
+	'if_returns'                    => array(
 		'step'    => 2,
 		'section' => 5,
 		'source'  => 'terms-conditions',
@@ -510,29 +510,23 @@ $this->fields = $this->fields + array(
 		'label'   => __( 'Do you offer returns of goods or the withdrawal of services?', 'complianz-terms-conditions' ),
 	),
 
-	/*
-	 * Fast fix (EU Directive 2023/2673): the choice between our generated PDF and a
-	 * user-supplied link is hidden for now. Users must always provide their own
-	 * withdrawal function link (see if_returns_custom_link below). This question is
-	 * kept here, commented out, to be restored when the built-in withdrawal form
-	 * feature is implemented.
-	 *
-	// Whether to use a custom withdrawal form instead of the auto-generated PDF.
-	'if_returns_custom'           => array(
-		'step'    => 2,
-		'section' => 5,
-		'source'  => 'terms-conditions',
-		'type'    => 'radio',
-		'options' => $this->yes_no,
-		'default' => 'no',
-		'tooltip' => __( 'We will add a standard, translatable form to this paragraph. To use your own, you can add the link below.', 'complianz-terms-conditions' ),
-		'label'   => __( 'Do you want to use a custom withdrawal form?', 'complianz-terms-conditions' ),
+	// Withdrawal-mechanism choice: 'yes' = link your own function, 'no' (default) = Complianz form. Polarity kept from the legacy question.
+	'if_returns_custom'             => array(
+		'step'      => 2,
+		'section'   => 5,
+		'source'    => 'terms-conditions',
+		'type'      => 'radio',
+		'options'   => $this->yes_no,
+		'default'   => 'no',
+		'tooltip'   => __( 'Choose "No" to use the ready-to-use Complianz withdrawal form; a Withdrawal page is created for you. Choose "Yes" to link to your own withdrawal function instead.', 'complianz-terms-conditions' ),
+		'label'     => __( 'Do you want to link to your own withdrawal function instead of using the Complianz withdrawal form?', 'complianz-terms-conditions' ),
+		'condition' => array(
+			'if_returns' => 'yes',
+		),
 	),
-	*/
 
-	// Link to the user's own withdrawal function; required and always shown when returns are offered.
-	// The EU Directive 2023/2673 notice is rendered as a sidebar notice via the 'help' argument.
-	'if_returns_custom_link'      => array(
+	// Link to the user's own withdrawal function; required, shown only on the own-link path.
+	'if_returns_custom_link'        => array(
 		'step'      => 2,
 		'section'   => 5,
 		'source'    => 'terms-conditions',
@@ -543,12 +537,29 @@ $this->fields = $this->fields + array(
 		'tooltip'   => __( 'Add the link to your own withdrawal function. This link will be shown in your Terms & Conditions so users can exercise their right of withdrawal.', 'complianz-terms-conditions' ),
 		'help'      => __( 'Following EU Directive 2023/2673 (effective 19 June 2026), you must offer consumers an easy-to-use online withdrawal function for distance contracts. Adding the link to your withdrawal function is now required.', 'complianz-terms-conditions' ),
 		'condition' => array(
-			'if_returns' => 'yes',
+			'if_returns'        => 'yes',
+			'if_returns_custom' => 'yes',
+		),
+	),
+
+	// Recipient for withdrawal requests; shown only on the Complianz-form path.
+	'withdrawal_notification_email' => array(
+		'step'      => 2,
+		'section'   => 5,
+		'source'    => 'terms-conditions',
+		'required'  => true,
+		'default'   => get_option( 'admin_email' ),
+		'type'      => 'email',
+		'label'     => __( 'Where should we send withdrawal requests?', 'complianz-terms-conditions' ),
+		'tooltip'   => __( 'Each withdrawal request submitted through the Complianz withdrawal form is emailed to this address. Defaults to the site administrator address.', 'complianz-terms-conditions' ),
+		'condition' => array(
+			'if_returns'        => 'yes',
+			'if_returns_custom' => 'no',
 		),
 	),
 
 	// Refund period in days; EU legislation requires a minimum of 14 days.
-	'refund_period'               => array(
+	'refund_period'                 => array(
 		'step'      => 2,
 		'section'   => 5,
 		'minimum'   => 14,
@@ -564,7 +575,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Type of contract closed through the website; determines which return clauses apply.
-	'about_returns'               => array(
+	'about_returns'                 => array(
 		'step'      => 2,
 		'section'   => 5,
 		'source'    => 'terms-conditions',
@@ -585,7 +596,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Whether the seller offers to collect physical goods from the customer on withdrawal.
-	'product_returns'             => array(
+	'product_returns'               => array(
 		'step'      => 2,
 		'section'   => 5,
 		'source'    => 'terms-conditions',
@@ -599,7 +610,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Who bears the cost of returning goods on withdrawal.
-	'costs_returns'               => array(
+	'costs_returns'                 => array(
 		'step'      => 2,
 		'section'   => 5,
 		'source'    => 'terms-conditions',
@@ -618,7 +629,7 @@ $this->fields = $this->fields + array(
 	),
 
 	// Shown when costs_returns = 'maxcost'; the maximum return cost including currency.
-	'max_amount_returned'         => array(
+	'max_amount_returned'           => array(
 		'step'        => 2,
 		'section'     => 5,
 		'source'      => 'terms-conditions',
