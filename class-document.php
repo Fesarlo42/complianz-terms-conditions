@@ -1380,19 +1380,20 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 *
 		 * Hooked into 'wp_enqueue_scripts'. Only runs when the Complianz GDPR
 		 * plugin is active (cmplz_version defined) and the current page is a
-		 * Complianz document page. Respects SCRIPT_DEBUG for non-minified assets
-		 * and the 'use_document_css' Complianz GDPR setting. Also hooks the
-		 * Complianz GDPR inline_styles action into wp_head.
+		 * Complianz document page or the Withdrawal page. Respects SCRIPT_DEBUG
+		 * for non-minified assets and the 'use_document_css' Complianz GDPR
+		 * setting. Also hooks the Complianz GDPR inline_styles action into wp_head.
 		 *
 		 * @since  1.0.0
 		 * @access public
 		 *
 		 * @see    cmplz_tc_document::is_complianz_page()
+		 * @see    cmplz_tc_document::is_withdrawal_page()
 		 *
 		 * @return void
 		 */
 		public function enqueue_assets() {
-			if ( defined( 'cmplz_version' ) && $this->is_complianz_page() ) {
+			if ( defined( 'cmplz_version' ) && ( $this->is_complianz_page() || $this->is_withdrawal_page() ) ) {
 				$min      = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
 				$load_css = cmplz_get_value( 'use_document_css' );
 				if ( $load_css ) {
@@ -1591,7 +1592,25 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 				$posted_pages = json_decode( wp_unslash( $_POST['pages'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON data is sanitized per-field after decoding.
 				foreach ( $posted_pages as $region => $pages ) {
 					foreach ( $pages as $type => $title ) {
-						$title           = sanitize_text_field( $title );
+						$title = sanitize_text_field( $title );
+
+						// The Withdrawal page is tracked by option, not the document shortcode scan.
+						if ( 'withdrawal' === $type ) {
+							$withdrawal_id = $this->get_withdrawal_page_id();
+							if ( ! $withdrawal_id ) {
+								$this->create_page( 'withdrawal' );
+							} else {
+								wp_update_post(
+									array(
+										'ID'         => $withdrawal_id,
+										'post_title' => $title,
+										'post_type'  => 'page',
+									)
+								);
+							}
+							continue;
+						}
+
 						$current_page_id = $this->get_shortcode_page_id( $type, false );
 						if ( ! $current_page_id ) {
 							$this->create_page( $type );
@@ -1606,6 +1625,9 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 						}
 					}
 				}
+
+				// Create the Withdrawal page when the provided-form path is selected (FR-6/FR-9).
+				$this->maybe_create_withdrawal_page();
 			}
 			$data = array(
 				'success'         => ! $error,
@@ -1644,6 +1666,11 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 						break;
 					}
 				}
+			}
+
+			// The option-tracked Withdrawal page is missing when the provided form is in use.
+			if ( $this->uses_withdrawal_form() && ! $this->get_withdrawal_page_id() ) {
+				$missing_pages = true;
 			}
 
 			return $missing_pages;
@@ -1718,6 +1745,36 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 
 								<?php
 							}
+						}
+
+						// The Withdrawal page is tracked by option, so its row is rendered here explicitly (FR-6).
+						if ( $this->uses_withdrawal_form() ) {
+							$withdrawal_id = $this->get_withdrawal_page_id();
+							if ( ! $withdrawal_id ) {
+								$missing_pages = true;
+								$w_title       = __( 'Withdrawal', 'complianz-terms-conditions' );
+								$w_icon        = cmplz_tc_icon( 'check', 'error' );
+								$w_class       = 'cmplz-deleted-page';
+							} else {
+								$w_post  = get_post( $withdrawal_id );
+								$w_icon  = cmplz_tc_icon( 'check', 'success' );
+								$w_title = $w_post->post_title;
+								$w_class = 'cmplz-valid-page';
+							}
+							$w_shortcode = $this->get_withdrawal_shortcode();
+							?>
+							<div>
+								<input
+										name="withdrawal"
+										data-region="all"
+										class="<?php echo esc_attr( $w_class ); ?> cmplz-create-page-title"
+										type="text"
+										value="<?php echo esc_attr( $w_title ); ?>">
+								<?php echo $w_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from trusted internal helper. ?>
+							</div>
+							<div class="cmplz-shortcode" id="withdrawal"><?php echo esc_html( $w_shortcode ); ?></div>
+							<span class="cmplz-copy-shortcode"><?php echo cmplz_tc_icon( 'shortcode', 'default', esc_attr__( 'Click to copy the withdrawal form shortcode', 'complianz-terms-conditions' ), 15, 'withdrawal', $w_shortcode ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from trusted internal helper. ?></span>
+							<?php
 						}
 						?>
 					</div>
@@ -1938,18 +1995,26 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 * The page is published immediately with the appropriate shortcode or block
 		 * as its content (via get_shortcode()). Fires the 'cmplz_tc_create_page'
 		 * action with the new page ID after creation. Requires 'manage_options'.
+		 * The 'withdrawal' type is delegated to create_withdrawal_page(), which
+		 * tracks its page by the cmplz_tc_withdrawal_page_id option rather than a
+		 * document shortcode scan.
 		 *
 		 * @since  1.0.0
 		 * @access public
 		 *
 		 * @see    cmplz_tc_document::get_shortcode()
 		 * @see    cmplz_tc_document::get_shortcode_page_id()
+		 * @see    cmplz_tc_document::create_withdrawal_page()
 		 *
 		 * @param  string $type  Document type identifier, e.g. 'terms-conditions'.
 		 * @return int|false       The page ID (existing or newly created), or false
 		 *                         when the current user lacks 'manage_options'.
 		 */
 		public function create_page( $type ) {
+			// The Withdrawal page is not a generated document; track it via its own option.
+			if ( 'withdrawal' === $type ) {
+				return $this->create_withdrawal_page();
+			}
 			if ( ! current_user_can( 'manage_options' ) ) {
 				return false;
 			}
@@ -1973,6 +2038,193 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			do_action( 'cmplz_tc_create_page', $page_id );
 
 			return $page_id;
+		}
+
+		/**
+		 * Whether the merchant uses the Complianz-provided withdrawal form.
+		 *
+		 * True on the provided-form path: returns are offered (if_returns = yes)
+		 * and the merchant did not opt for their own link (if_returns_custom = no).
+		 * A fresh configuration resolves to this path by default (FR-2).
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @return bool  True when the provided withdrawal form is in use.
+		 */
+		public function uses_withdrawal_form() {
+			return 'yes' === cmplz_tc_get_value( 'if_returns' )
+				&& 'no' === cmplz_tc_get_value( 'if_returns_custom' );
+		}
+
+		/**
+		 * Return the block or shortcode string that embeds the withdrawal form.
+		 *
+		 * Mirrors get_shortcode(): a Gutenberg block on block-editor sites that do
+		 * not use Elementor, the classic shortcode otherwise. The block/shortcode
+		 * handlers themselves are registered separately.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @see    cmplz_tc_document::get_shortcode()
+		 *
+		 * @return string  The block comment or classic shortcode string.
+		 */
+		public function get_withdrawal_shortcode() {
+			if ( cmplz_tc_uses_gutenberg() && ! $this->uses_elementor() ) {
+				return '<!-- wp:complianztc/withdrawal-form /-->';
+			}
+
+			return '[cmplz-tc-withdrawal-form]';
+		}
+
+		/**
+		 * Create the published "Withdrawal" page if it does not already exist.
+		 *
+		 * The page embeds the withdrawal form (block or shortcode) and its ID is
+		 * stored in the cmplz_tc_withdrawal_page_id option — the page is tracked by
+		 * that option rather than by a document shortcode scan. Idempotent: reuses
+		 * the tracked page when it still exists. Requires 'manage_options'.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @see    cmplz_tc_document::get_withdrawal_page_id()
+		 * @see    cmplz_tc_document::get_withdrawal_shortcode()
+		 *
+		 * @return int|false  The page ID (existing or newly created), or false when
+		 *                     the user lacks 'manage_options' or insertion fails.
+		 */
+		public function create_withdrawal_page() {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return false;
+			}
+
+			// Reuse the tracked page when it is still present.
+			$page_id = $this->get_withdrawal_page_id();
+			if ( $page_id ) {
+				return $page_id;
+			}
+
+			$page_id = wp_insert_post(
+				array(
+					'post_title'   => __( 'Withdrawal', 'complianz-terms-conditions' ),
+					'post_type'    => 'page',
+					'post_content' => $this->get_withdrawal_shortcode(),
+					'post_status'  => 'publish',
+				)
+			);
+
+			// wp_insert_post() returns 0 on failure with the default (no WP_Error) args.
+			if ( ! $page_id ) {
+				return false;
+			}
+
+			update_option( 'cmplz_tc_withdrawal_page_id', $page_id, false );
+			do_action( 'cmplz_tc_create_page', $page_id );
+
+			return $page_id;
+		}
+
+		/**
+		 * Create the Withdrawal page only when the provided-form path is selected.
+		 *
+		 * Called from the page-creation flow. On the own-link path this is a no-op
+		 * and never removes an existing page, so switching paths only swaps the
+		 * generated clause and link — content is never deleted (FR-9).
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @see    cmplz_tc_document::uses_withdrawal_form()
+		 * @see    cmplz_tc_document::create_withdrawal_page()
+		 *
+		 * @return int|false  The Withdrawal page ID, or false when the provided
+		 *                     form is not in use.
+		 */
+		public function maybe_create_withdrawal_page() {
+			if ( ! $this->uses_withdrawal_form() ) {
+				return false;
+			}
+
+			return $this->create_withdrawal_page();
+		}
+
+		/**
+		 * Return the tracked Withdrawal page ID, or false when unavailable.
+		 *
+		 * Reads the cmplz_tc_withdrawal_page_id option and confirms the page still
+		 * exists and is published; a trashed or deleted page resolves to false so
+		 * callers can degrade gracefully (FR-8).
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @return int|false  The published Withdrawal page ID, or false.
+		 */
+		public function get_withdrawal_page_id() {
+			$page_id = (int) get_option( 'cmplz_tc_withdrawal_page_id' );
+			if ( ! $page_id ) {
+				return false;
+			}
+
+			$post = get_post( $page_id );
+			if ( ! $post instanceof WP_Post
+				|| 'page' !== $post->post_type
+				|| 'publish' !== $post->post_status
+			) {
+				return false;
+			}
+
+			return $page_id;
+		}
+
+		/**
+		 * Return the Withdrawal page permalink, or an empty string when unavailable.
+		 *
+		 * Used to repoint the generated withdrawal clause at the form page; returns
+		 * '' when no live page exists so the clause degrades without a broken link.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @see    cmplz_tc_document::get_withdrawal_page_id()
+		 *
+		 * @return string  The page permalink, or '' when no live page exists.
+		 */
+		public function get_withdrawal_page_url() {
+			$page_id = $this->get_withdrawal_page_id();
+			if ( ! $page_id ) {
+				return '';
+			}
+
+			return (string) get_permalink( $page_id );
+		}
+
+		/**
+		 * Determine whether a post is the tracked Withdrawal page.
+		 *
+		 * Falls back to the global $post when no ID is given. Used to enqueue the
+		 * form's front-end assets on the Withdrawal page.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @param  int|false $post_id  Post ID to check. When false, uses the global
+		 *                             $post. Default: false.
+		 * @return bool                True when the post is the Withdrawal page.
+		 */
+		public function is_withdrawal_page( $post_id = false ) {
+			if ( ! $post_id ) {
+				global $post;
+				$post_id = $post instanceof WP_Post ? $post->ID : 0;
+			}
+			if ( ! $post_id ) {
+				return false;
+			}
+
+			return (int) get_option( 'cmplz_tc_withdrawal_page_id' ) === (int) $post_id;
 		}
 
 		/**
