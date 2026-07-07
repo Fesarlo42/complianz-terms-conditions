@@ -192,12 +192,7 @@ $this->pages['all']['terms-conditions']['document_elements'] = array(
 		),
 	),
 
-	/*
-	 * Fast fix (EU Directive 2023/2673): users must point to their own withdrawal
-	 * function. This "our form" variant is kept for the upcoming built-in withdrawal
-	 * form feature but is disabled for now via a sentinel condition value that never
-	 * matches a stored answer (the if_returns_custom choice is hidden in this fix).
-	 */
+	// Provided-form path (if_returns_custom = no): links to the built-in Withdrawal page via [withdrawal_form_link].
 	array(
 		'content'   => _x( 'To exercise your right of withdrawal, you must inform us of your decision to withdraw from this contract by an unequivocal statement.', 'Legal document', 'complianz-terms-conditions' ) . '&nbsp;' .
 							// translators: %1$s is the opening anchor tag for the withdrawal function link, %2$s is the closing anchor tag.
@@ -205,7 +200,7 @@ $this->pages['all']['terms-conditions']['document_elements'] = array(
 							_x( 'You are, however, free to express your intention to withdraw from the contract by making an unequivocal statement in any other suitable way.', 'Legal document', 'complianz-terms-conditions' ),
 		'condition' => array(
 			'if_returns'        => 'yes',
-			'if_returns_custom' => 'disabled',
+			'if_returns_custom' => 'no',
 		),
 	),
 
@@ -215,7 +210,10 @@ $this->pages['all']['terms-conditions']['document_elements'] = array(
 							// translators: %1$s is the opening anchor tag for the withdrawal function link, %2$s is the closing anchor tag.
 							sprintf( _x( 'To this end, you may use the %1$swithdrawal function available%2$s.', 'Legal document', 'complianz-terms-conditions' ), '[if_returns_custom_link]', '[/if_returns_custom_link]' ) . '&nbsp;' .
 							_x( 'You are, however, free to express your intention to withdraw from the contract by making an unequivocal statement in any other suitable way.', 'Legal document', 'complianz-terms-conditions' ),
-		'condition' => array( 'if_returns' => 'yes' ),
+		'condition' => array(
+			'if_returns'        => 'yes',
+			'if_returns_custom' => 'yes',
+		),
 	),
 
 	array(
@@ -228,7 +226,7 @@ $this->pages['all']['terms-conditions']['document_elements'] = array(
 	),
 
 	array(
-		'content'   => _x( 'If you use this option, we will communicate to you an acknowledgement of receipt of such a withdrawal on a durable medium (for example by email) without delay.', 'Legal document', 'complianz-terms-conditions' ),
+		'content'   => _x( 'We will communicate to you an acknowledgement of receipt of such a withdrawal on a durable medium (for example by email) without delay.', 'Legal document', 'complianz-terms-conditions' ),
 		'condition' => array( 'if_returns' => 'yes' ),
 	),
 

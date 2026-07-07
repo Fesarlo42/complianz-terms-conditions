@@ -701,7 +701,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 * - '[download_pdf_link]', '[domain]', '[site_url]' → site URL tokens
 		 * - '[languages]'            → formatted communication language string
 		 * - '[checked_date]'         → localised document update date
-		 * - '[withdrawal_form_link]' → URL to the generated withdrawal form PDF
+		 * - '[withdrawal_form_link]' → permalink of the Withdrawal page (home URL as a fallback)
 		 * - '[fieldname]'            → individual field values via get_plain_text_value()
 		 * - '[comma_fieldname]'      → comma-separated version of field values
 		 * - '[/fieldname]'           → closing </a> for URL fields
@@ -786,11 +786,13 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			$checked_date = cmplz_tc_localize_date( $checked_date );
 			$html         = str_replace( '[checked_date]', esc_html( $checked_date ), $html );
 
-			$uploads               = wp_upload_dir();
-			$uploads_url           = $uploads['baseurl'];
-			$locale                = substr( get_locale(), 0, 2 );
-			$with_drawal_form_link = $uploads_url . "/complianz/withdrawal-forms/withdrawal-form-$locale.pdf";
-			$html                  = str_replace( '[withdrawal_form_link]', $with_drawal_form_link, $html );
+			// Point the withdrawal clause at the Withdrawal page; fall back to the site home when the
+			// page is absent, so the document degrades without a broken link or a leftover token (FR-8/FR-21).
+			$withdrawal_form_link = $this->get_withdrawal_page_url();
+			if ( '' === $withdrawal_form_link ) {
+				$withdrawal_form_link = home_url( '/' );
+			}
+			$html = str_replace( '[withdrawal_form_link]', esc_url( $withdrawal_form_link ), $html );
 
 			// Replace all fields.
 			foreach ( COMPLIANZ_TC::$config->fields() as $fieldname => $field ) {
