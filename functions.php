@@ -81,7 +81,10 @@ if ( ! function_exists( 'cmplz_tc_get_template' ) ) {
 		// Replace {key} placeholder tokens with the provided argument values.
 		if ( ! empty( $args ) ) {
 			foreach ( $args as $fieldname => $value ) {
-				$contents = str_replace( '{' . $fieldname . '}', $value, $contents );
+				// Only scalars are token-substitutable; skip arrays (e.g. field errors/values).
+				if ( is_scalar( $value ) ) {
+					$contents = str_replace( '{' . $fieldname . '}', (string) $value, $contents );
+				}
 			}
 		}
 

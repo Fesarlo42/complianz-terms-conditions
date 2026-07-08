@@ -1409,6 +1409,25 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 				}
 				add_action( 'wp_head', array( COMPLIANZ::$document, 'inline_styles' ), 100 );
 			}
+
+			// The withdrawal form's own assets load on the Withdrawal page regardless
+			// of whether the Complianz GDPR plugin is active.
+			if ( $this->is_withdrawal_page() ) {
+				$min = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
+				wp_enqueue_style(
+					'cmplz-tc-withdrawal-form',
+					trailingslashit( cmplz_tc_url ) . "assets/css/withdrawal-form$min.css",
+					array(),
+					cmplz_tc_version
+				);
+				wp_enqueue_script(
+					'cmplz-tc-withdrawal-form',
+					trailingslashit( cmplz_tc_url ) . "assets/js/withdrawal-form$min.js",
+					array(),
+					cmplz_tc_version,
+					true
+				);
+			}
 		}
 
 		/**
