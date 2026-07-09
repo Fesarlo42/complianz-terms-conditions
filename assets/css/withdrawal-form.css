@@ -78,6 +78,20 @@
 	cursor: pointer;
 }
 
+/* On-screen confirmation shown after a successful submission (FR-19). */
+.cmplz-tc-wf-confirmation {
+	max-width: 40rem;
+	padding: 1rem 1.25rem;
+	border: 1px solid #15803d;
+	border-radius: 4px;
+	background: #f0fdf4;
+	color: #14532d;
+}
+
+.cmplz-tc-wf-confirmation h2 {
+	margin-top: 0;
+}
+
 /* Honeypot: removed from view but still submitted, so bots fill it. */
 .cmplz-tc-wf-hp {
 	position: absolute !important;

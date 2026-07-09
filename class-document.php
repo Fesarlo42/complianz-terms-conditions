@@ -1450,6 +1450,15 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 				cmplz_tc_version,
 				true
 			);
+			// The nonce endpoint URL is static and cacheable; only the nonce it
+			// serves must stay uncached (FR-13 / NFR-P1).
+			wp_localize_script(
+				'cmplz-tc-withdrawal-form',
+				'cmplz_tc_withdrawal',
+				array(
+					'nonceEndpoint' => esc_url_raw( rest_url( 'complianz_tc/v1/withdrawal-nonce' ) ),
+				)
+			);
 		}
 
 		/**
@@ -2144,14 +2153,65 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		public function render_withdrawal_form() {
 			$this->enqueue_withdrawal_assets();
 
-			$html = cmplz_tc_get_template(
-				'withdrawal-form.php',
-				array(
-					'merchant_identity' => $this->get_merchant_identity(),
-				)
-			);
+			// Consume any Post/Redirect/Get state carried from the submission handler.
+			$state = $this->consume_withdrawal_state();
+			if ( is_array( $state ) && isset( $state['status'] ) && 'success' === $state['status'] ) {
+				return $this->withdrawal_confirmation_html();
+			}
+
+			$args = array( 'merchant_identity' => $this->get_merchant_identity() );
+			if ( is_array( $state ) ) {
+				if ( ! empty( $state['errors'] ) && is_array( $state['errors'] ) ) {
+					$args['errors'] = $state['errors'];
+				}
+				if ( ! empty( $state['values'] ) && is_array( $state['values'] ) ) {
+					$args['values'] = $state['values'];
+				}
+			}
+
+			$html = cmplz_tc_get_template( 'withdrawal-form.php', $args );
 
 			return false === $html ? '' : $html;
+		}
+
+		/**
+		 * Read the one-shot PRG state for the current request, if present.
+		 *
+		 * The token is an unguessable, single-use transient key carried in the
+		 * redirect query — not state-changing input — so no nonce is required.
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 *
+		 * @see    cmplz_tc_withdrawal::consume_state()
+		 *
+		 * @return array|null  The stored state, or null when absent.
+		 */
+		private function consume_withdrawal_state() {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token is an unguessable one-shot transient key, not state-changing input.
+			$token = isset( $_GET['cmplz-tc-wf'] ) ? sanitize_text_field( wp_unslash( $_GET['cmplz-tc-wf'] ) ) : '';
+			if ( '' === $token ) {
+				return null;
+			}
+			return cmplz_tc_withdrawal::consume_state( $token );
+		}
+
+		/**
+		 * Build the on-screen confirmation shown after a successful submission.
+		 *
+		 * Carries no personal data (FR-19 / NFR-S4); the acknowledgement of the
+		 * submitted details is the consumer email added in Task 9.
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 *
+		 * @return string  Escaped confirmation HTML.
+		 */
+		private function withdrawal_confirmation_html() {
+			return '<div class="cmplz-tc-wf-confirmation" role="status">'
+				. '<h2>' . esc_html__( 'Withdrawal request sent', 'complianz-terms-conditions' ) . '</h2>'
+				. '<p>' . esc_html__( 'Thank you. Your withdrawal request has been sent to the merchant. You will also receive a confirmation of your request by email.', 'complianz-terms-conditions' ) . '</p>'
+				. '</div>';
 		}
 
 		/**

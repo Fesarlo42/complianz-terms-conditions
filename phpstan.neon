@@ -13,6 +13,7 @@ parameters:
         - class-field.php
         - class-review.php
         - class-wizard.php
+        - class-withdrawal.php
         - callback-notices.php
         - complianz-terms-conditions.php
         - config

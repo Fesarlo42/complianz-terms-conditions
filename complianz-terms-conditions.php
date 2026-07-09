@@ -165,6 +165,15 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 		public static $document;
 
 		/**
+		 * Holds the withdrawal submission handler instance.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 * @var    cmplz_tc_withdrawal
+		 */
+		public static $withdrawal;
+
+		/**
 		 * Initialises the plugin by setting up constants, loading files, and instantiating components.
 		 *
 		 * Called once via get_instance(). Admin-only components are conditionally
@@ -190,6 +199,10 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 
 			// The document object is needed both on the frontend (shortcode) and in admin.
 			self::$document = new cmplz_tc_document();
+
+			// The withdrawal handler registers a public admin-post endpoint on all requests.
+			self::$withdrawal = new cmplz_tc_withdrawal();
+			self::$withdrawal->init();
 		}
 
 		/**
@@ -262,6 +275,10 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 		private function includes() {
 			// Document class is required on all requests (shortcode + PDF endpoint).
 			require_once cmplz_tc_path . 'class-document.php';
+
+			// Withdrawal handler is required on all requests: it serves the public
+			// admin-post endpoint and its state is read during front-end rendering.
+			require_once cmplz_tc_path . 'class-withdrawal.php';
 
 			// Only load the Gutenberg block integration when the block editor is in use.
 			if ( cmplz_tc_uses_gutenberg() ) {

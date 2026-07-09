@@ -47,6 +47,42 @@ function cmplz_tc_documents_rest_route() {
 			'permission_callback' => '__return_true',
 		)
 	);
+
+	register_rest_route(
+		'complianz_tc/v1',
+		'withdrawal-nonce',
+		array(
+			'methods'             => 'GET',
+			'callback'            => 'cmplz_tc_rest_api_withdrawal_nonce',
+			// The endpoint issues a public anti-abuse nonce; it performs no privileged action (NFR-S3).
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+
+/**
+ * Return a fresh withdrawal-form nonce and render timestamp, uncached.
+ *
+ * The withdrawal form page stays fully cacheable; its nonce and render
+ * timestamp are fetched from this small uncached endpoint at page load so
+ * full-page caching can never serve a stale nonce and reject a legitimate
+ * submission (FR-13 / NFR-P1). The no-store header prevents any intermediary
+ * from caching the response.
+ *
+ * @since  1.4.0
+ * @access public
+ *
+ * @return WP_REST_Response The nonce and current server timestamp.
+ */
+function cmplz_tc_rest_api_withdrawal_nonce() {
+	$response = new WP_REST_Response(
+		array(
+			'nonce'    => cmplz_tc_withdrawal::create_nonce(),
+			'rendered' => time(),
+		)
+	);
+	$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
+	return $response;
 }
 
 /**

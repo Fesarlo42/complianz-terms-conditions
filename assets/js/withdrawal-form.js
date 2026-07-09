@@ -1,23 +1,60 @@
 /**
  * Front-end progressive enhancement for the Complianz T&C withdrawal form.
  *
- * Task 4 scope: after a Post/Redirect/Get re-render, move focus to the error
- * summary so assistive tech announces the validation errors. The uncached
- * nonce/render-timestamp fetch (FR-13/NFR-P1) is added by the submission
- * handler in Task 7.
+ * Two jobs:
+ *  1. Fetch a fresh nonce + render timestamp from the uncached REST endpoint and
+ *     populate the hidden integrity fields, so a fully cached form page can never
+ *     submit a stale nonce (FR-13 / NFR-P1).
+ *  2. After a Post/Redirect/Get re-render, move focus to the error summary so
+ *     assistive tech announces the validation errors.
  *
  * @package Complianz_Terms_Conditions
  */
 
 ( function () {
-	document.addEventListener( 'DOMContentLoaded', function () {
+	function fetchNonce( form ) {
+		var config = window.cmplz_tc_withdrawal;
+		if ( ! config || ! config.nonceEndpoint ) {
+			return;
+		}
+		fetch( config.nonceEndpoint, {
+			credentials: 'same-origin',
+			headers: { Accept: 'application/json' },
+		} )
+			.then( function ( response ) {
+				return response.json();
+			} )
+			.then( function ( data ) {
+				if ( ! data ) {
+					return;
+				}
+				var nonce = form.querySelector( 'input[name="cmplz_tc_wf_nonce"]' );
+				var rendered = form.querySelector( 'input[name="cmplz_tc_wf_rendered"]' );
+				if ( nonce && data.nonce ) {
+					nonce.value = data.nonce;
+				}
+				if ( rendered && data.rendered ) {
+					rendered.value = data.rendered;
+				}
+			} )
+			.catch( function () {} );
+	}
+
+	function focusErrorSummary() {
 		var summary = document.querySelector(
 			'.cmplz-tc-withdrawal-form .cmplz-tc-wf-errors[role="alert"]'
 		);
 		if ( summary ) {
-			// Make the summary programmatically focusable, then focus it.
 			summary.setAttribute( 'tabindex', '-1' );
 			summary.focus();
 		}
+	}
+
+	document.addEventListener( 'DOMContentLoaded', function () {
+		var form = document.querySelector( '.cmplz-tc-withdrawal-form' );
+		if ( form ) {
+			fetchNonce( form );
+		}
+		focusErrorSummary();
 	} );
 }() );
