@@ -948,6 +948,8 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		public function init() {
 			// This shortcode is also available as gutenberg block.
 			add_shortcode( 'cmplz-terms-conditions', array( $this, 'load_document' ) );
+			// Withdrawal form: shortcode + Gutenberg block (registered in gutenberg/block.php) render identically.
+			add_shortcode( 'cmplz-tc-withdrawal-form', array( $this, 'render_withdrawal_form' ) );
 			add_filter( 'display_post_states', array( $this, 'add_post_state' ), 10, 2 );
 
 			// Clear shortcode transients after post update.
@@ -1416,21 +1418,38 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			// The withdrawal form's own assets load on the Withdrawal page regardless
 			// of whether the Complianz GDPR plugin is active.
 			if ( $this->is_withdrawal_page() ) {
-				$min = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
-				wp_enqueue_style(
-					'cmplz-tc-withdrawal-form',
-					trailingslashit( cmplz_tc_url ) . "assets/css/withdrawal-form$min.css",
-					array(),
-					cmplz_tc_version
-				);
-				wp_enqueue_script(
-					'cmplz-tc-withdrawal-form',
-					trailingslashit( cmplz_tc_url ) . "assets/js/withdrawal-form$min.js",
-					array(),
-					cmplz_tc_version,
-					true
-				);
+				$this->enqueue_withdrawal_assets();
 			}
+		}
+
+		/**
+		 * Enqueue the withdrawal form's front-end CSS and JS.
+		 *
+		 * Shared by enqueue_assets() (the tracked Withdrawal page) and
+		 * render_withdrawal_form() (arbitrary-page block/shortcode embeds), so the
+		 * form's assets load wherever it renders (FR-7). wp_enqueue_*() is
+		 * idempotent, so calling this more than once per request is safe.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @return void
+		 */
+		public function enqueue_withdrawal_assets() {
+			$min = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
+			wp_enqueue_style(
+				'cmplz-tc-withdrawal-form',
+				trailingslashit( cmplz_tc_url ) . "assets/css/withdrawal-form$min.css",
+				array(),
+				cmplz_tc_version
+			);
+			wp_enqueue_script(
+				'cmplz-tc-withdrawal-form',
+				trailingslashit( cmplz_tc_url ) . "assets/js/withdrawal-form$min.js",
+				array(),
+				cmplz_tc_version,
+				true
+			);
 		}
 
 		/**
@@ -2101,6 +2120,59 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			}
 
 			return '[cmplz-tc-withdrawal-form]';
+		}
+
+		/**
+		 * Render the interactive withdrawal form (block + shortcode callback).
+		 *
+		 * Single render path for both the [cmplz-tc-withdrawal-form] shortcode and
+		 * the complianztc/withdrawal-form block, so the two produce identical output
+		 * (FR-7). Passes the merchant identity heading from the generator config to
+		 * the Task-4 template and enqueues the form assets on render so embeds on an
+		 * arbitrary page still load their CSS/JS. The template escapes all output, so
+		 * the string is returned without the document wp_kses() pass (which would
+		 * strip the form controls).
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @see    cmplz_tc_document::get_merchant_identity()
+		 * @see    cmplz_tc_document::enqueue_withdrawal_assets()
+		 *
+		 * @return string  The rendered form HTML, or '' when the template is missing.
+		 */
+		public function render_withdrawal_form() {
+			$this->enqueue_withdrawal_assets();
+
+			$html = cmplz_tc_get_template(
+				'withdrawal-form.php',
+				array(
+					'merchant_identity' => $this->get_merchant_identity(),
+				)
+			);
+
+			return false === $html ? '' : $html;
+		}
+
+		/**
+		 * Build the merchant identity/address block shown atop the withdrawal form.
+		 *
+		 * Combines the generator's organisation name and company address into a
+		 * plain-text, multi-line string that the template renders as a pre-filled,
+		 * non-editable heading (FR-10, §8). Empty parts are dropped.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @return string  The merchant name and address, newline-separated.
+		 */
+		public function get_merchant_identity() {
+			$parts = array(
+				(string) cmplz_tc_get_value( 'organisation_name', 'terms-conditions' ),
+				(string) cmplz_tc_get_value( 'address_company', 'terms-conditions' ),
+			);
+
+			return trim( implode( "\n", array_filter( array_map( 'trim', $parts ) ) ) );
 		}
 
 		/**

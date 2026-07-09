@@ -79,7 +79,7 @@ $wf_fields = array(
 	array(
 		'key'      => 'cmplz_tc_wf_order_date',
 		'id'       => 'cmplz-tc-wf-order-date',
-		'label'    => __( 'Date ordered / received', 'complianz-terms-conditions' ),
+		'label'    => __( 'Order date', 'complianz-terms-conditions' ),
 		'type'     => 'date',
 		'required' => false,
 	),
