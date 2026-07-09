@@ -510,16 +510,19 @@ $this->fields = $this->fields + array(
 		'label'   => __( 'Do you offer returns of goods or the withdrawal of services?', 'complianz-terms-conditions' ),
 	),
 
-	// Withdrawal-mechanism choice: 'yes' = link your own function, 'no' (default) = Complianz form. Polarity kept from the legacy question.
+	// Withdrawal-mechanism choice. Polarity kept from the legacy question ('no' = Complianz form, 'yes' = own link); the compliant default is listed first.
 	'if_returns_custom'             => array(
 		'step'      => 2,
 		'section'   => 5,
 		'source'    => 'terms-conditions',
 		'type'      => 'radio',
-		'options'   => $this->yes_no,
+		'options'   => array(
+			'no'  => __( 'Use the Complianz withdrawal form', 'complianz-terms-conditions' ),
+			'yes' => __( 'Link to my own withdrawal function', 'complianz-terms-conditions' ),
+		),
 		'default'   => 'no',
-		'tooltip'   => __( 'Choose "No" to use the ready-to-use Complianz withdrawal form; a Withdrawal page is created for you. Choose "Yes" to link to your own withdrawal function instead.', 'complianz-terms-conditions' ),
-		'label'     => __( 'Do you want to link to your own withdrawal function instead of using the Complianz withdrawal form?', 'complianz-terms-conditions' ),
+		'tooltip'   => __( 'Use the ready-to-use Complianz withdrawal form (a Withdrawal page is created for you), or link to your own withdrawal function instead.', 'complianz-terms-conditions' ),
+		'label'     => __( 'Do you want to use the Complianz withdrawal form or link to your own withdrawal function?', 'complianz-terms-conditions' ),
 		'condition' => array(
 			'if_returns' => 'yes',
 		),
@@ -543,15 +546,17 @@ $this->fields = $this->fields + array(
 	),
 
 	// Recipient for withdrawal requests; shown only on the Complianz-form path.
+	// The help note (blue sidebar) carries the no-storage + SMTP caveats.
 	'withdrawal_notification_email' => array(
 		'step'      => 2,
 		'section'   => 5,
 		'source'    => 'terms-conditions',
 		'required'  => true,
-		'default'   => get_option( 'admin_email' ),
+		'default'   => cmplz_tc_default_withdrawal_notification_email(),
 		'type'      => 'email',
 		'label'     => __( 'Where should we send withdrawal requests?', 'complianz-terms-conditions' ),
-		'tooltip'   => __( 'Each withdrawal request submitted through the Complianz withdrawal form is emailed to this address. Defaults to the site administrator address.', 'complianz-terms-conditions' ),
+		'tooltip'   => __( 'Each withdrawal request submitted through the Complianz withdrawal form is emailed to this address. Defaults to your general contact email, or the site administrator address.', 'complianz-terms-conditions' ),
+		'help'      => __( 'Withdrawal requests are <strong>not stored</strong> in WordPress — they are delivered by email only. Make sure your site can send email (configure an SMTP plugin or server), otherwise a request may never arrive.', 'complianz-terms-conditions' ),
 		'condition' => array(
 			'if_returns'        => 'yes',
 			'if_returns_custom' => 'no',

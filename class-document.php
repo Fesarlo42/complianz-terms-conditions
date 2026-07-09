@@ -967,6 +967,9 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			add_filter( 'cmplz_tc_document_email', array( $this, 'obfuscate_email' ) );
 			add_filter( 'body_class', array( $this, 'add_body_class_for_complianz_documents' ) );
 
+			// Resolve the withdrawal recipient at read time so it is never empty (contact email, then admin email).
+			add_filter( 'cmplz_tc_fieldvalue_withdrawal_notification_email', 'cmplz_tc_default_withdrawal_notification_email' );
+
 			// Unlinking documents.
 			add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 			add_action( 'save_post', array( $this, 'save_metabox_data' ), 10, 3 );

@@ -2426,7 +2426,8 @@ if ( ! class_exists( 'cmplz_tc_field' ) ) {
 			$value = ( false !== $value ) ? $value
 				: apply_filters( 'cmplz_tc_default_value', $default_value, $fieldname );
 
-			return $value;
+			// Per-field value filter (e.g. never-empty resolution for withdrawal_notification_email).
+			return apply_filters( "cmplz_tc_fieldvalue_{$fieldname}", $value, $fieldname );
 		}
 
 		/**
