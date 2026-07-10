@@ -5,7 +5,7 @@ Requires at least: 5.0
 License: GPL3
 Requires PHP: 7.4
 Tested up to: 7.0
-Stable tag: 1.3.1
+Stable tag: 1.4.0
 
 Configure your own Terms and Conditions specific to your service or webshop.
 
@@ -46,6 +46,14 @@ The Terms & Conditions have their own [CSS classes](https://complianz.io/styling
 Terms and Conditions, on the web, also known as Terms of Service or Terms of Use, is an agreement explaining the terms, rules, and guidelines to which a user must agree before entering a contractual relationship with the website owner.
 
 == Change log ==
+= 1.4.0 =
+* June 19th, 2026
+* New: built-in online withdrawal function for EU Directive 2023/2673, available as a Withdrawal page, a Gutenberg block, and a shortcode.
+* New: the wizard now lets you choose between the Complianz-provided withdrawal form and linking to your own withdrawal function; the generated Terms & Conditions text reflects your choice.
+* New: withdrawal requests are sent to the merchant by email (with the consumer as Reply-To) and the consumer receives an acknowledgement of receipt; an on-screen confirmation is shown after submitting.
+* Improvement: the withdrawal form is accessible and localized, with honeypot, minimum-time and rate-limit anti-abuse protection and a cache-safe nonce.
+* Improvement: removed the legacy withdrawal-form PDF generation and cleaned up stale generated withdrawal PDFs on upgrade. The Terms & Conditions document download is unaffected.
+
 = 1.3.1 =
 * June 19th, 2026
 * Improvement: simplified the withdrawal section (EU Directive 2023/2673) - users now provide a link to their own withdrawal function, which is required.
