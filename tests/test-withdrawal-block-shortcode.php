@@ -37,6 +37,8 @@ class Test_Withdrawal_Block_Shortcode extends WP_UnitTestCase {
 		// does not leak between tests.
 		$GLOBALS['wp_scripts'] = null;
 		$GLOBALS['wp_styles']  = null;
+		// The render guard persists on the shared document instance across tests.
+		$this->doc()->reset_withdrawal_render_guard();
 	}
 
 	public function tear_down() {
@@ -84,10 +86,27 @@ class Test_Withdrawal_Block_Shortcode extends WP_UnitTestCase {
 
 	/** FR-7: block and shortcode must produce identical output. */
 	public function test_block_and_shortcode_produce_identical_output() {
-		$block           = WP_Block_Type_Registry::get_instance()->get_registered( $this->block_name );
-		$block_output    = call_user_func( $block->render_callback, array(), '' );
+		$block        = WP_Block_Type_Registry::get_instance()->get_registered( $this->block_name );
+		$block_output = call_user_func( $block->render_callback, array(), '' );
+		// Both entry points share the once-per-request guard; reset so the shortcode
+		// renders too and the two outputs can be compared.
+		$this->doc()->reset_withdrawal_render_guard();
 		$shortcode_output = do_shortcode( '[' . $this->shortcode . ']' );
 		$this->assertSame( $shortcode_output, $block_output, 'Block and shortcode output must be identical.' );
+	}
+
+	/** The form renders at most once per page; a second embed outputs nothing and leaves no raw tag. */
+	public function test_second_embed_on_page_renders_nothing() {
+		$first  = do_shortcode( '[' . $this->shortcode . ']' );
+		$second = do_shortcode( '[' . $this->shortcode . ']' );
+		$this->assertStringContainsString( '<form', $first, 'The first embed must render the form.' );
+		$this->assertSame( '', $second, 'A second embed on the same request must render nothing.' );
+
+		// Two tags in one content string: exactly one form, and no raw shortcode leaks.
+		$this->doc()->reset_withdrawal_render_guard();
+		$combined = do_shortcode( '[' . $this->shortcode . '][' . $this->shortcode . ']' );
+		$this->assertSame( 1, substr_count( $combined, '<form' ), 'Only one form may render per page.' );
+		$this->assertStringNotContainsString( '[' . $this->shortcode . ']', $combined, 'No raw shortcode tag may leak into the content.' );
 	}
 
 	// ---------------------------------------------------------------------

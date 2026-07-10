@@ -143,7 +143,8 @@ class Test_Release_1_4_0 extends WP_UnitTestCase {
 			'Withdrawal request sent',
 			// Consumer acknowledgement + delivery-failure UX (Task 9).
 			'This is an automated confirmation that your withdrawal request has been received and sent to the merchant.',
-			'Something went wrong and we could not deliver your withdrawal request. Please contact the merchant directly to complete your withdrawal:',
+			'This is a copy of the withdrawal request you submitted. We could not deliver it to the merchant automatically, so please contact them directly to complete your withdrawal.',
+			'We could not confirm your withdrawal request was delivered',
 		);
 
 		foreach ( $expected as $string ) {

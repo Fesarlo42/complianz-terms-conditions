@@ -22,6 +22,8 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$GLOBALS['wp_styles']        = null;
 		$_SERVER['REMOTE_ADDR']      = '203.0.113.7';
 		$this->wd                    = new cmplz_tc_withdrawal();
+		// The render guard persists on the shared document instance across tests.
+		COMPLIANZ_TC::$document->reset_withdrawal_render_guard();
 	}
 
 	public function tear_down() {

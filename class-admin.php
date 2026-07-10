@@ -249,14 +249,11 @@ if ( ! class_exists( 'cmplz_tc_admin' ) ) {
 				delete_option( 'cmplz_generate_pdf_languages' );
 				$this->remove_withdrawal_pdf_dir();
 
-				// Keep fast-fix installs with a saved own-link URL on the own-link path: the
-				// restored if_returns_custom question defaults to the Complianz form, so pin
-				// 'yes' when a link exists and no explicit choice was stored.
+				// Pre-1.4.0 installs never saw the "Complianz form vs. own link" choice, so keep them
+				// on the own-link path rather than letting the new 'no' default silently opt them into
+				// the Complianz form; only a fresh install (no prior T&C options) defaults to the form.
 				$tc_options = get_option( 'complianz_tc_options_terms-conditions' );
-				if ( is_array( $tc_options )
-					&& ! empty( $tc_options['if_returns_custom_link'] )
-					&& ! isset( $tc_options['if_returns_custom'] )
-				) {
+				if ( is_array( $tc_options ) && ! isset( $tc_options['if_returns_custom'] ) ) {
 					$tc_options['if_returns_custom'] = 'yes';
 					update_option( 'complianz_tc_options_terms-conditions', $tc_options );
 				}

@@ -552,7 +552,8 @@ $this->fields = $this->fields + array(
 		'section'   => 5,
 		'source'    => 'terms-conditions',
 		'required'  => true,
-		'default'   => cmplz_tc_default_withdrawal_notification_email(),
+		// Resolved never-empty at read time via the cmplz_tc_fieldvalue_ filter, so no eager default here.
+		'default'   => '',
 		'type'      => 'email',
 		'label'     => __( 'Where should we send withdrawal requests?', 'complianz-terms-conditions' ),
 		'tooltip'   => __( 'Each withdrawal request submitted through the Complianz withdrawal form is emailed to this address. Defaults to your general contact email, or the site administrator address.', 'complianz-terms-conditions' ),

@@ -535,8 +535,10 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			$source_url   = isset( $data['source_url'] ) ? (string) $data['source_url'] : '';
 			$consumer     = isset( $fields['cmplz_tc_wf_email'] ) ? (string) $fields['cmplz_tc_wf_email'] : '';
 
-			$ok = $this->send_merchant_notification( $fields, $submitted_at, $source_url, $consumer );
-			$ok = $this->send_consumer_acknowledgement( $fields, $submitted_at, $consumer ) && $ok;
+			$merchant_ok = $this->send_merchant_notification( $fields, $submitted_at, $source_url, $consumer );
+			// The acknowledgement wording depends on whether the merchant actually received the request.
+			$consumer_ok = $this->send_consumer_acknowledgement( $fields, $submitted_at, $consumer, $merchant_ok );
+			$ok          = $merchant_ok && $consumer_ok;
 
 			if ( ! $ok ) {
 				$this->record_mail_failure();
@@ -620,13 +622,14 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 *
 		 * @since 1.4.0
 		 *
-		 * @param  array  $fields       Sanitized §8 fields.
-		 * @param  int    $submitted_at Submission timestamp.
-		 * @param  string $consumer     The consumer's email (recipient).
-		 * @return bool                 True when wp_mail() reports success, or when
-		 *                              there is no valid recipient to send to.
+		 * @param  array  $fields            Sanitized §8 fields.
+		 * @param  int    $submitted_at      Submission timestamp.
+		 * @param  string $consumer          The consumer's email (recipient).
+		 * @param  bool   $merchant_delivered Whether the merchant notification was accepted.
+		 * @return bool                       True when wp_mail() reports success, or when
+		 *                                    there is no valid recipient to send to.
 		 */
-		private function send_consumer_acknowledgement( $fields, $submitted_at, $consumer ) {
+		private function send_consumer_acknowledgement( $fields, $submitted_at, $consumer, $merchant_delivered = true ) {
 			$recipient = $this->safe_email( $consumer );
 			if ( '' === $recipient ) {
 				// Validation guarantees a valid address upstream; nothing to send here.
@@ -634,7 +637,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			}
 
 			$subject = __( 'We have received your withdrawal request', 'complianz-terms-conditions' );
-			$body    = $this->consumer_body( $fields, $submitted_at );
+			$body    = $this->consumer_body( $fields, $submitted_at, $merchant_delivered );
 			$headers = $this->plain_text_headers();
 
 			/** This filter is documented in send_merchant_notification(). */
@@ -675,14 +678,19 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 *
 		 * @since 1.4.0
 		 *
-		 * @param  array $fields       Sanitized §8 fields.
-		 * @param  int   $submitted_at Submission timestamp.
-		 * @return string              Plain-text body.
+		 * @param  array $fields            Sanitized §8 fields.
+		 * @param  int   $submitted_at      Submission timestamp.
+		 * @param  bool  $merchant_delivered Whether the merchant notification was accepted.
+		 * @return string                    Plain-text body.
 		 */
-		private function consumer_body( $fields, $submitted_at ) {
-			$lines   = array();
-			$lines[] = __( 'This is an automated confirmation that your withdrawal request has been received and sent to the merchant.', 'complianz-terms-conditions' );
-			$lines[] = __( 'Receiving this message does not mean the merchant has already reviewed your request. They will contact you with any further information in due course.', 'complianz-terms-conditions' );
+		private function consumer_body( $fields, $submitted_at, $merchant_delivered = true ) {
+			$lines = array();
+			if ( $merchant_delivered ) {
+				$lines[] = __( 'This is an automated confirmation that your withdrawal request has been received and sent to the merchant.', 'complianz-terms-conditions' );
+				$lines[] = __( 'Receiving this message does not mean the merchant has already reviewed your request. They will contact you with any further information in due course.', 'complianz-terms-conditions' );
+			} else {
+				$lines[] = __( 'This is a copy of the withdrawal request you submitted. We could not deliver it to the merchant automatically, so please contact them directly to complete your withdrawal.', 'complianz-terms-conditions' );
+			}
 			$lines[] = '';
 			$lines[] = __( 'For your records, these are the details you submitted:', 'complianz-terms-conditions' );
 			$lines[] = '';
@@ -707,13 +715,14 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * @return array<string,string> Field key => label.
 		 */
 		private function field_labels() {
+			// Order mirrors the form template so the email reads in the same sequence.
 			return array(
 				'cmplz_tc_wf_name'       => __( 'Name', 'complianz-terms-conditions' ),
 				'cmplz_tc_wf_email'      => __( 'Email', 'complianz-terms-conditions' ),
+				'cmplz_tc_wf_goods'      => __( 'Goods or service', 'complianz-terms-conditions' ),
 				'cmplz_tc_wf_address'    => __( 'Address', 'complianz-terms-conditions' ),
 				'cmplz_tc_wf_order_ref'  => __( 'Order or contract reference', 'complianz-terms-conditions' ),
 				'cmplz_tc_wf_order_date' => __( 'Order date', 'complianz-terms-conditions' ),
-				'cmplz_tc_wf_goods'      => __( 'Goods or service', 'complianz-terms-conditions' ),
 				'cmplz_tc_wf_message'    => __( 'Additional message', 'complianz-terms-conditions' ),
 			);
 		}

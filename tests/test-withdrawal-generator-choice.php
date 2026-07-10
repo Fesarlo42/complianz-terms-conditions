@@ -169,13 +169,16 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 		);
 	}
 
-	/** FR-4: the notification recipient defaults to the site administrator address. */
+	/** FR-4: with nothing stored, the recipient resolves to the admin address via the read-time filter (empty config seed). */
 	public function test_notification_email_defaults_to_admin_email() {
 		$field = $this->get_field( 'withdrawal_notification_email' );
+		$this->assertSame( '', $field['default'], 'The config seed is empty; resolution is deferred to the read-time filter.' );
+
+		delete_option( $this->options_key );
 		$this->assertSame(
 			get_option( 'admin_email' ),
-			$field['default'],
-			'The notification recipient must default to the site administrator address.'
+			$this->field_controller()->get_value( 'withdrawal_notification_email' ),
+			'The recipient must resolve to the site administrator address when nothing is configured.'
 		);
 	}
 
@@ -204,8 +207,8 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 		);
 	}
 
-	/** An install with no saved own-link URL must fall through to the form default. */
-	public function test_migration_leaves_form_installs_on_the_default_path() {
+	/** An existing install with no explicit choice must stay on the own-link path, not be opted into the Complianz form. */
+	public function test_migration_keeps_existing_installs_off_the_form_path() {
 		update_option(
 			$this->options_key,
 			array(
@@ -218,12 +221,11 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 		$this->get_admin()->check_upgrade();
 
 		$options = get_option( $this->options_key );
-		$this->assertArrayNotHasKey(
-			'if_returns_custom',
-			$options,
-			'With no saved own-link URL the migration must not pin a path; the compliant default applies.'
+		$this->assertSame(
+			'yes',
+			$options['if_returns_custom'],
+			'A pre-1.4.0 install must be pinned to the own-link path, not silently switched to the Complianz form.'
 		);
-		$this->assertSame( 'no', cmplz_tc_get_value( 'if_returns_custom' ) );
 	}
 
 	/** The migration must never overwrite a choice the merchant has already made. */

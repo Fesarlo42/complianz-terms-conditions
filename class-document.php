@@ -47,6 +47,19 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		private static $_this; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- Underscore prefix is part of the established singleton accessor pattern used throughout this codebase.
 
 		/**
+		 * Whether the withdrawal form has already rendered on this request.
+		 *
+		 * The form is a single-instance embed: a page may contain the block or
+		 * shortcode more than once, but only the first renders; later embeds output
+		 * nothing. Resets naturally per request.
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 * @var    bool
+		 */
+		private $withdrawal_form_rendered = false;
+
+		/**
 		 * Initialise the singleton and register all hooks.
 		 *
 		 * Enforces the singleton contract by calling wp_die() if a second
@@ -2151,6 +2164,14 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 * @return string  The rendered form HTML, or '' when the template is missing.
 		 */
 		public function render_withdrawal_form() {
+			// Single-instance: only the first embed on a page renders; a second block or
+			// shortcode outputs nothing (the registered callback returning '' also drops the
+			// raw shortcode tag from the content).
+			if ( $this->withdrawal_form_rendered ) {
+				return '';
+			}
+			$this->withdrawal_form_rendered = true;
+
 			// Own-link (or returns-off) path: render a link to the merchant's own
 			// withdrawal function instead of the form. A pre-existing page is never
 			// deleted (FR-9), so this keeps the page coherent without a live form.
@@ -2184,6 +2205,21 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			$html = cmplz_tc_get_template( 'withdrawal-form.php', $args );
 
 			return false === $html ? '' : $html;
+		}
+
+		/**
+		 * Reset the once-per-request withdrawal-form render guard.
+		 *
+		 * The guard resets naturally per request; this seam lets a test render the
+		 * form more than once within a single PHP process.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @return void
+		 */
+		public function reset_withdrawal_render_guard() {
+			$this->withdrawal_form_rendered = false;
 		}
 
 		/**
@@ -2242,8 +2278,9 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			$contact = $this->get_merchant_contact_block();
 
 			$html = '<div class="cmplz-tc-wf-error" role="alert">'
-				. '<h2>' . esc_html__( 'Your request could not be delivered', 'complianz-terms-conditions' ) . '</h2>'
-				. '<p>' . esc_html__( 'Something went wrong and we could not deliver your withdrawal request. Please contact the merchant directly to complete your withdrawal:', 'complianz-terms-conditions' ) . '</p>';
+				. '<h2>' . esc_html__( 'We could not confirm your withdrawal request was delivered', 'complianz-terms-conditions' ) . '</h2>'
+				. '<p>' . esc_html__( 'Something went wrong while sending your withdrawal request, and we cannot confirm it reached the merchant. If you have received a confirmation email, please do not rely on it — your request may not have gone through.', 'complianz-terms-conditions' ) . '</p>'
+				. '<p>' . esc_html__( 'To make sure your withdrawal is registered, please contact the merchant directly:', 'complianz-terms-conditions' ) . '</p>';
 			if ( '' !== $contact ) {
 				$html .= '<p class="cmplz-tc-wf-merchant-contact">' . nl2br( esc_html( $contact ) ) . '</p>';
 			}

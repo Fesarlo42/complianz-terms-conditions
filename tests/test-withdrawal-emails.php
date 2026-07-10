@@ -348,6 +348,29 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertFalse( $this->wd->dispatch_emails( $this->payload() ) );
 	}
 
+	/** When the merchant send fails, the consumer copy drops the "sent to the merchant" claim. */
+	public function test_consumer_ack_reflects_failed_merchant_delivery() {
+		$this->set_merchant();
+		add_filter(
+			'pre_wp_mail',
+			static function ( $short, $atts ) {
+				$to = is_array( $atts['to'] ) ? implode( ',', $atts['to'] ) : (string) $atts['to'];
+				return ( false !== strpos( $to, 'merchant@shop.example' ) ) ? false : $short;
+			},
+			10,
+			2
+		);
+
+		$this->wd->dispatch_emails( $this->payload() );
+
+		$sent = $this->sent_to( 'jane@example.com' );
+		$this->assertNotNull( $sent, 'The consumer still receives a copy even when the merchant send fails.' );
+		$body = $sent['body'];
+		$this->assertStringContainsString( 'copy of the withdrawal request', $body );
+		$this->assertStringContainsString( 'contact them directly', $body );
+		$this->assertStringNotContainsString( 'sent to the merchant', $body, 'The ack must not claim a delivery the merchant never received.' );
+	}
+
 	// -----------------------------------------------------------------
 	// #4 — own-link path sends no email.
 	// -----------------------------------------------------------------
