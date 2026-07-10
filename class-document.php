@@ -2151,12 +2151,24 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 * @return string  The rendered form HTML, or '' when the template is missing.
 		 */
 		public function render_withdrawal_form() {
+			// Own-link (or returns-off) path: render a link to the merchant's own
+			// withdrawal function instead of the form. A pre-existing page is never
+			// deleted (FR-9), so this keeps the page coherent without a live form.
+			if ( ! $this->uses_withdrawal_form() ) {
+				return $this->withdrawal_own_link_html();
+			}
+
 			$this->enqueue_withdrawal_assets();
 
 			// Consume any Post/Redirect/Get state carried from the submission handler.
 			$state = $this->consume_withdrawal_state();
-			if ( is_array( $state ) && isset( $state['status'] ) && 'success' === $state['status'] ) {
-				return $this->withdrawal_confirmation_html();
+			if ( is_array( $state ) && isset( $state['status'] ) ) {
+				if ( 'success' === $state['status'] ) {
+					return $this->withdrawal_confirmation_html();
+				}
+				if ( 'delivery_error' === $state['status'] ) {
+					return $this->withdrawal_delivery_error_html();
+				}
 			}
 
 			$args = array( 'merchant_identity' => $this->get_merchant_identity() );
@@ -2215,6 +2227,49 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		}
 
 		/**
+		 * Build the on-screen error shown when a submission could not be delivered.
+		 *
+		 * Phase 1 stores no record, so a failed dispatch must be surfaced to the
+		 * consumer (FR-20 refinement): it tells them to contact the merchant directly
+		 * and shows the merchant's identity and contact from the general settings.
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 *
+		 * @return string  Escaped error HTML.
+		 */
+		private function withdrawal_delivery_error_html() {
+			$contact = $this->get_merchant_contact_block();
+
+			$html = '<div class="cmplz-tc-wf-error" role="alert">'
+				. '<h2>' . esc_html__( 'Your request could not be delivered', 'complianz-terms-conditions' ) . '</h2>'
+				. '<p>' . esc_html__( 'Something went wrong and we could not deliver your withdrawal request. Please contact the merchant directly to complete your withdrawal:', 'complianz-terms-conditions' ) . '</p>';
+			if ( '' !== $contact ) {
+				$html .= '<p class="cmplz-tc-wf-merchant-contact">' . nl2br( esc_html( $contact ) ) . '</p>';
+			}
+			return $html . '</div>';
+		}
+
+		/**
+		 * Build the link shown in place of the form on the own-link path (FR-9/FR-21).
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 *
+		 * @return string  Escaped link HTML, or '' when no own-link URL is configured.
+		 */
+		private function withdrawal_own_link_html() {
+			$url = (string) cmplz_tc_get_value( 'if_returns_custom_link', 'terms-conditions' );
+			if ( '' === $url ) {
+				return '';
+			}
+			return '<p class="cmplz-tc-wf-own-link">'
+				. esc_html__( 'To withdraw from your contract, please use our withdrawal function:', 'complianz-terms-conditions' )
+				. ' <a href="' . esc_url( $url ) . '">' . esc_html( $url ) . '</a>'
+				. '</p>';
+		}
+
+		/**
 		 * Build the merchant identity/address block shown atop the withdrawal form.
 		 *
 		 * Combines the generator's organisation name and company address into a
@@ -2233,6 +2288,61 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			);
 
 			return trim( implode( "\n", array_filter( array_map( 'trim', $parts ) ) ) );
+		}
+
+		/**
+		 * Build the fuller merchant block for the consumer acknowledgement (§9.2).
+		 *
+		 * Extends get_merchant_identity() (name + address, used for the form heading)
+		 * with the merchant's contact line, which Art. 11a requires in the durable-
+		 * medium receipt. The contact reflects how the merchant chose to be reached
+		 * (email or contact page); when only a phone-on-website was configured it
+		 * falls back to the never-empty notification email. Empty parts are dropped.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 *
+		 * @see    cmplz_tc_document::get_merchant_identity()
+		 *
+		 * @return string  Merchant name, address and contact, newline-separated.
+		 */
+		public function get_merchant_contact_block() {
+			$parts = array(
+				(string) cmplz_tc_get_value( 'organisation_name', 'terms-conditions' ),
+				(string) cmplz_tc_get_value( 'address_company', 'terms-conditions' ),
+				$this->get_merchant_contact_line(),
+			);
+
+			return trim( implode( "\n", array_filter( array_map( 'trim', $parts ) ) ) );
+		}
+
+		/**
+		 * Resolve the merchant's contact line for the acknowledgement email.
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 *
+		 * @return string  A labelled contact line, or '' when none can be resolved.
+		 */
+		private function get_merchant_contact_line() {
+			// A configured contact page is shown as-is; every other case (email, phone,
+			// unset) uses the withdrawal-specific address, which may differ from the
+			// general Terms & Conditions contact email.
+			if ( 'webpage' === (string) cmplz_tc_get_value( 'contact_company', 'terms-conditions' ) ) {
+				$url = (string) cmplz_tc_get_value( 'page_company', 'terms-conditions' );
+				if ( '' !== $url ) {
+					/* translators: %s: merchant contact page URL. */
+					return sprintf( __( 'Contact page: %s', 'complianz-terms-conditions' ), $url );
+				}
+			}
+
+			$email = (string) cmplz_tc_get_value( 'withdrawal_notification_email' );
+			if ( '' !== $email ) {
+				/* translators: %s: merchant contact email address for withdrawal queries. */
+				return sprintf( __( 'Email: %s', 'complianz-terms-conditions' ), $email );
+			}
+
+			return '';
 		}
 
 		/**

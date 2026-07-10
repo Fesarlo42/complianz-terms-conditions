@@ -107,12 +107,16 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// Task 9 seam — this task sends no email.
+	// Task 9 seam — a valid submission fires the email-dispatch action.
 	// -----------------------------------------------------------------
 
-	/** A valid submission fires the Task-9 seam and sends no email itself. */
-	public function test_valid_submission_fires_seam_and_sends_no_email() {
-		reset_phpmailer_instance();
+	/**
+	 * A valid submission fires the seam exactly once.
+	 *
+	 * The handler sends no email inline — dispatch is attached to this action by
+	 * Task 9 (covered in Test_Withdrawal_Emails), keeping the concerns decoupled.
+	 */
+	public function test_valid_submission_fires_seam() {
 		$fired = 0;
 		add_action(
 			'cmplz_tc_withdrawal_validated',
@@ -122,7 +126,6 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		);
 		$this->wd->process( $this->valid_input() );
 		$this->assertSame( 1, $fired, 'The Task-9 seam action must fire once on a valid submission.' );
-		$this->assertEmpty( tests_retrieve_phpmailer_instance()->get_sent(), 'Task 7 must not send email.' );
 	}
 
 	// -----------------------------------------------------------------
@@ -272,6 +275,58 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$out = COMPLIANZ_TC::$document->render_withdrawal_form();
 		$this->assertStringContainsString( 'cmplz-tc-wf-confirmation', $out );
 		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render after success.' );
+	}
+
+	// -----------------------------------------------------------------
+	// #4 — own-link path renders a link, not the form.
+	// -----------------------------------------------------------------
+
+	/** On the own-link path the block/shortcode renders a link to the merchant's own function. */
+	public function test_own_link_path_renders_link_not_form() {
+		update_option(
+			'complianz_tc_options_terms-conditions',
+			array(
+				'if_returns'             => 'yes',
+				'if_returns_custom'      => 'yes',
+				'if_returns_custom_link' => 'https://merchant.example/withdraw',
+			)
+		);
+		$out = COMPLIANZ_TC::$document->render_withdrawal_form();
+		$this->assertStringContainsString( 'https://merchant.example/withdraw', $out, 'Own-link path must link to the merchant function.' );
+		$this->assertStringNotContainsString( '<form', $out, 'Own-link path must not render the form.' );
+	}
+
+	// -----------------------------------------------------------------
+	// #5 — delivery-failure surfaces to the consumer (FR-19/FR-20 refinement).
+	// -----------------------------------------------------------------
+
+	/** A delivery failure yields a delivery_error status rather than success. */
+	public function test_delivery_failure_yields_delivery_error_status() {
+		add_filter( 'pre_wp_mail', '__return_false' );
+		$result = $this->wd->process( $this->valid_input() );
+		$this->assertSame( 'delivery_error', $result['status'] );
+	}
+
+	/** The consumer sees an error naming the merchant contact, not the success screen. */
+	public function test_delivery_error_renders_consumer_error_with_contact() {
+		update_option(
+			'complianz_tc_options_terms-conditions',
+			array(
+				'organisation_name'             => 'Acme Webshop BV',
+				'withdrawal_notification_email' => 'merchant@shop.example',
+				'contact_company'               => 'manually',
+			)
+		);
+		add_filter( 'pre_wp_mail', '__return_false' );
+		$result = $this->wd->process( $this->valid_input() );
+		$this->assertSame( 'delivery_error', $result['status'] );
+
+		$_GET['cmplz-tc-wf'] = $result['token'];
+		$out                 = COMPLIANZ_TC::$document->render_withdrawal_form();
+		$this->assertStringContainsString( 'contact the merchant', $out, 'The consumer must be told to contact the merchant.' );
+		$this->assertStringContainsString( 'merchant@shop.example', $out, 'The merchant contact must be shown.' );
+		$this->assertStringNotContainsString( 'cmplz-tc-wf-confirmation', $out, 'The success confirmation must not show on failure.' );
+		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render after a delivery failure.' );
 	}
 
 	// -----------------------------------------------------------------
