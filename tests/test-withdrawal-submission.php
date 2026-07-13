@@ -87,6 +87,27 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertSame( 'success', $result['status'] );
 	}
 
+	/**
+	 * Validation is driven by the field spec: every required field is enforced with
+	 * its own message, and blanking an optional field never blocks the submission.
+	 */
+	public function test_required_validation_is_driven_by_field_spec() {
+		$required = array(
+			'cmplz_tc_wf_name'  => 'Please enter your name.',
+			'cmplz_tc_wf_email' => 'Please enter your email address.',
+			'cmplz_tc_wf_goods' => 'Please describe the goods or service you are withdrawing from.',
+		);
+		foreach ( $required as $key => $message ) {
+			$result = $this->wd->process( $this->valid_input( array( $key => '   ' ) ) );
+			$this->assertSame( 'invalid', $result['status'], $key . ' must be required.' );
+			$this->assertSame( $message, $result['errors'][ $key ], $key . ' keeps its specific message.' );
+		}
+
+		// An optional field left blank still succeeds.
+		$result = $this->wd->process( $this->valid_input( array( 'cmplz_tc_wf_address' => '' ) ) );
+		$this->assertSame( 'success', $result['status'] );
+	}
+
 	/** All consumer input is sanitized server-side (NFR-S1). */
 	public function test_input_is_sanitized() {
 		$captured = array();

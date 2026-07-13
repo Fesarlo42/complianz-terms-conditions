@@ -2387,8 +2387,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 */
 		public function get_merchant_contact_block() {
 			$parts = array(
-				(string) cmplz_tc_get_value( 'organisation_name', 'terms-conditions' ),
-				(string) cmplz_tc_get_value( 'address_company', 'terms-conditions' ),
+				$this->get_merchant_identity(),
 				$this->get_merchant_contact_line(),
 			);
 

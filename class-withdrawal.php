@@ -308,25 +308,30 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Field specification: which are required and how each is sanitized.
+		 * Field specification: which are required, how each is sanitized, and the
+		 * presence-error message for the required ones. validate() is driven off this,
+		 * so a field's required-ness lives here as data rather than as hardcoded checks.
 		 *
 		 * @since 1.4.0
 		 *
-		 * @return array<string,array{required:bool,sanitize:string}>
+		 * @return array<string,array{required:bool,sanitize:string,error_message?:string}>
 		 */
 		private function fields() {
 			return array(
 				'cmplz_tc_wf_name'       => array(
-					'required' => true,
-					'sanitize' => 'text',
+					'required'      => true,
+					'sanitize'      => 'text',
+					'error_message' => __( 'Please enter your name.', 'complianz-terms-conditions' ),
 				),
 				'cmplz_tc_wf_email'      => array(
-					'required' => true,
-					'sanitize' => 'email',
+					'required'      => true,
+					'sanitize'      => 'email',
+					'error_message' => __( 'Please enter your email address.', 'complianz-terms-conditions' ),
 				),
 				'cmplz_tc_wf_goods'      => array(
-					'required' => true,
-					'sanitize' => 'textarea',
+					'required'      => true,
+					'sanitize'      => 'textarea',
+					'error_message' => __( 'Please describe the goods or service you are withdrawing from.', 'complianz-terms-conditions' ),
 				),
 				'cmplz_tc_wf_address'    => array(
 					'required' => false,
@@ -378,19 +383,20 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		private function validate( array $clean ) {
 			$errors = array();
 
-			if ( '' === trim( $clean['cmplz_tc_wf_name'] ) ) {
-				$errors['cmplz_tc_wf_name'] = __( 'Please enter your name.', 'complianz-terms-conditions' );
+			// Required-field presence, driven by the field spec (not hardcoded per field).
+			foreach ( $this->fields() as $key => $spec ) {
+				if ( empty( $spec['required'] ) ) {
+					continue;
+				}
+				if ( '' === trim( (string) ( isset( $clean[ $key ] ) ? $clean[ $key ] : '' ) ) ) {
+					$errors[ $key ] = isset( $spec['error_message'] ) ? (string) $spec['error_message'] : '';
+				}
 			}
 
-			$email = trim( $clean['cmplz_tc_wf_email'] );
-			if ( '' === $email ) {
-				$errors['cmplz_tc_wf_email'] = __( 'Please enter your email address.', 'complianz-terms-conditions' );
-			} elseif ( ! is_email( $email ) ) {
+			// Email format is a rule beyond mere presence, so it stays a dedicated check.
+			$email = trim( (string) ( isset( $clean['cmplz_tc_wf_email'] ) ? $clean['cmplz_tc_wf_email'] : '' ) );
+			if ( ! isset( $errors['cmplz_tc_wf_email'] ) && '' !== $email && ! is_email( $email ) ) {
 				$errors['cmplz_tc_wf_email'] = __( 'Please enter a valid email address.', 'complianz-terms-conditions' );
-			}
-
-			if ( '' === trim( $clean['cmplz_tc_wf_goods'] ) ) {
-				$errors['cmplz_tc_wf_goods'] = __( 'Please describe the goods or service you are withdrawing from.', 'complianz-terms-conditions' );
 			}
 
 			// Length caps (SEC-M2): bound attacker-controlled content that flows verbatim
@@ -465,10 +471,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * @return bool True while the client is within the limit.
 		 */
 		private function within_rate_limit() {
-			$key   = 'cmplz_tc_wf_rl_' . md5( $this->client_ip() . '|' . wp_salt( 'nonce' ) );
-			$count = (int) get_transient( $key ) + 1;
-			set_transient( $key, $count, $this->rate_limit_window() );
-			return $count <= $this->rate_limit_max();
+			return $this->hit_counter( $this->client_key( 'cmplz_tc_wf_rl_' ), $this->rate_limit_window(), $this->rate_limit_max() );
 		}
 
 		/**
@@ -494,6 +497,36 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			 * @param string $ip The REMOTE_ADDR-derived client IP.
 			 */
 			return (string) apply_filters( 'cmplz_tc_withdrawal_client_ip', $ip );
+		}
+
+		/**
+		 * Increment a windowed transient counter and report whether it is within the max.
+		 *
+		 * The shared body of every best-effort rate limit / throttle below.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param  string $key    Transient key.
+		 * @param  int    $window Window in seconds.
+		 * @param  int    $max    Maximum hits allowed within the window.
+		 * @return bool           True while the counter is at or below the max.
+		 */
+		private function hit_counter( $key, $window, $max ) {
+			$count = (int) get_transient( $key ) + 1;
+			set_transient( $key, $count, $window );
+			return $count <= $max;
+		}
+
+		/**
+		 * Per-client transient key for a rate limit with the given prefix.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param  string $prefix Transient key prefix.
+		 * @return string         The prefixed, client-IP-derived key.
+		 */
+		private function client_key( $prefix ) {
+			return $prefix . md5( $this->client_ip() . '|' . wp_salt( 'nonce' ) );
 		}
 
 		/**
@@ -903,10 +936,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * @return bool True while the client is within the limit.
 		 */
 		private function within_email_rate_limit() {
-			$key   = 'cmplz_tc_wf_email_rl_' . md5( $this->client_ip() . '|' . wp_salt( 'nonce' ) );
-			$count = (int) get_transient( $key ) + 1;
-			set_transient( $key, $count, $this->email_rate_limit_window() );
-			return $count <= $this->email_rate_limit_max();
+			return $this->hit_counter( $this->client_key( 'cmplz_tc_wf_email_rl_' ), $this->email_rate_limit_window(), $this->email_rate_limit_max() );
 		}
 
 		/**
@@ -926,10 +956,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			if ( '' === $consumer ) {
 				return true;
 			}
-			$key   = 'cmplz_tc_wf_email_rcpt_' . md5( $consumer . '|' . wp_salt( 'nonce' ) );
-			$count = (int) get_transient( $key ) + 1;
-			set_transient( $key, $count, $this->email_recipient_window() );
-			return $count <= $this->email_recipient_max();
+			$key = 'cmplz_tc_wf_email_rcpt_' . md5( $consumer . '|' . wp_salt( 'nonce' ) );
+			return $this->hit_counter( $key, $this->email_recipient_window(), $this->email_recipient_max() );
 		}
 
 		/**
@@ -945,10 +973,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * @return bool True while the site is within the ceiling.
 		 */
 		private function within_global_email_limit() {
-			$key   = 'cmplz_tc_wf_email_global';
-			$count = (int) get_transient( $key ) + 1;
-			set_transient( $key, $count, $this->email_global_window() );
-			return $count <= $this->email_global_max();
+			return $this->hit_counter( 'cmplz_tc_wf_email_global', $this->email_global_window(), $this->email_global_max() );
 		}
 
 		/**
@@ -1029,10 +1054,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * @return bool True while the client is within the limit.
 		 */
 		public function within_nonce_endpoint_rate_limit() {
-			$key   = 'cmplz_tc_wf_nonce_rl_' . md5( $this->client_ip() . '|' . wp_salt( 'nonce' ) );
-			$count = (int) get_transient( $key ) + 1;
-			set_transient( $key, $count, $this->nonce_endpoint_window() );
-			return $count <= $this->nonce_endpoint_max();
+			return $this->hit_counter( $this->client_key( 'cmplz_tc_wf_nonce_rl_' ), $this->nonce_endpoint_window(), $this->nonce_endpoint_max() );
 		}
 
 		/**
