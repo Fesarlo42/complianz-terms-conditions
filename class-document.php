@@ -2278,7 +2278,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 * @return string  Escaped confirmation HTML.
 		 */
 		private function withdrawal_confirmation_html() {
-			return '<div class="cmplz-tc-wf-confirmation" role="status">'
+			return '<div class="cmplz-tc-wf-confirmation" role="status" tabindex="-1">'
 				. '<h2>' . esc_html__( 'Withdrawal request sent', 'complianz-terms-conditions' ) . '</h2>'
 				. '<p>' . esc_html__( 'Thank you. Your withdrawal request has been sent to the merchant. You will also receive a confirmation of your request by email.', 'complianz-terms-conditions' ) . '</p>'
 				. '</div>';
@@ -2299,7 +2299,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		private function withdrawal_delivery_error_html() {
 			$contact = $this->get_merchant_contact_block();
 
-			$html = '<div class="cmplz-tc-wf-error" role="alert">'
+			$html = '<div class="cmplz-tc-wf-error" role="alert" tabindex="-1">'
 				. '<h2>' . esc_html__( 'We could not confirm your withdrawal request was delivered', 'complianz-terms-conditions' ) . '</h2>'
 				. '<p>' . esc_html__( 'Something went wrong while sending your withdrawal request, and we cannot confirm it reached the merchant. If you have received a confirmation email, please do not rely on it — your request may not have gone through.', 'complianz-terms-conditions' ) . '</p>'
 				. '<p>' . esc_html__( 'To make sure your withdrawal is registered, please contact the merchant directly:', 'complianz-terms-conditions' ) . '</p>';
@@ -2323,7 +2323,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 * @return string  Escaped message HTML.
 		 */
 		private function withdrawal_try_again_html() {
-			return '<div class="cmplz-tc-wf-error" role="alert">'
+			return '<div class="cmplz-tc-wf-error" role="alert" tabindex="-1">'
 				. '<h2>' . esc_html__( 'We could not process your request right now', 'complianz-terms-conditions' ) . '</h2>'
 				. '<p>' . esc_html__( 'Something went wrong while sending your withdrawal request. Please try again in a little while.', 'complianz-terms-conditions' ) . '</p>'
 				. '</div>';

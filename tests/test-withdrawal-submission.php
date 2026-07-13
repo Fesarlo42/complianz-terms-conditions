@@ -231,6 +231,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 
 		$out = COMPLIANZ_TC::$document->render_withdrawal_form();
 		$this->assertStringContainsString( 'try again', $out, 'The consumer is asked to retry later.' );
+		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The try-again message must be focusable so it is announced (ACC-S1).' );
 		$this->assertStringNotContainsString( 'cmplz-tc-wf-confirmation', $out, 'A throttled send must not show the success screen.' );
 		$this->assertStringNotContainsString( 'contact the merchant', $out, 'A transient throttle must not tell the consumer to contact the merchant.' );
 		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render on the try-again screen.' );
@@ -378,6 +379,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 
 		$out = COMPLIANZ_TC::$document->render_withdrawal_form();
 		$this->assertStringContainsString( 'cmplz-tc-wf-confirmation', $out );
+		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The confirmation must be focusable so it is announced (ACC-S1).' );
 		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render after success.' );
 	}
 
@@ -429,6 +431,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$out                 = COMPLIANZ_TC::$document->render_withdrawal_form();
 		$this->assertStringContainsString( 'contact the merchant', $out, 'The consumer must be told to contact the merchant.' );
 		$this->assertStringContainsString( 'merchant@shop.example', $out, 'The merchant contact must be shown.' );
+		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The delivery error must be focusable so it is announced (ACC-S1).' );
 		$this->assertStringNotContainsString( 'cmplz-tc-wf-confirmation', $out, 'The success confirmation must not show on failure.' );
 		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render after a delivery failure.' );
 	}

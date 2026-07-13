@@ -31,10 +31,12 @@
 	min-height: 6rem;
 }
 
-/* Visible keyboard focus for full keyboard operability (NFR-A2). */
+/* Visible keyboard focus for full keyboard operability (NFR-A2); includes the
+   error-summary links, which move focus into the form (ACC-m1). */
 .cmplz-tc-withdrawal-form input:focus-visible,
 .cmplz-tc-withdrawal-form textarea:focus-visible,
-.cmplz-tc-withdrawal-form button:focus-visible {
+.cmplz-tc-withdrawal-form button:focus-visible,
+.cmplz-tc-withdrawal-form a:focus-visible {
 	outline: 3px solid #2563eb;
 	outline-offset: 2px;
 }
@@ -72,6 +74,10 @@
 	margin-bottom: 1.5rem;
 }
 
+/* Left to inherit theme/browser button styling (ACC-M2, accepted): the native
+   default is legible and imposing brand colours would fight the host theme;
+   custom-theme button contrast is covered by theme QA. Focus ring is guaranteed
+   by the :focus-visible rule above. */
 .cmplz-tc-wf-submit {
 	padding: 0.6rem 1.2rem;
 	font: inherit;
@@ -90,6 +96,31 @@
 
 .cmplz-tc-wf-confirmation h2 {
 	margin-top: 0;
+}
+
+/* On-screen delivery-failure / retry message — same shape as the confirmation, in
+   an error tone (ACC-m3). #7f1d1d on #fef2f2 is 9.16:1 (AA). */
+.cmplz-tc-wf-error {
+	max-width: 40rem;
+	padding: 1rem 1.25rem;
+	border: 1px solid #b91c1c;
+	border-radius: 4px;
+	background: #fef2f2;
+	color: #7f1d1d;
+}
+
+.cmplz-tc-wf-error h2 {
+	margin-top: 0;
+}
+
+/* The result containers receive programmatic focus after the PRG (ACC-S1). Use
+   :focus, not :focus-visible — a scripted focus() on a tabindex=-1 container does
+   not reliably trigger :focus-visible, so this keeps the move visible even when a
+   theme resets outlines (ACC-M1). */
+.cmplz-tc-wf-confirmation:focus,
+.cmplz-tc-wf-error:focus {
+	outline: 3px solid #2563eb;
+	outline-offset: 2px;
 }
 
 /* Honeypot: removed from view but still submitted, so bots fill it. */

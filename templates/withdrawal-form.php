@@ -106,6 +106,7 @@ foreach ( $wf_fields as $wf_f ) {
 }
 ?>
 <form class="cmplz-tc-withdrawal-form" method="post" action="<?php echo esc_url( $wf_action ); ?>" aria-labelledby="cmplz-tc-wf-title">
+	<?php /* ACC-m4 (accepted): the form starts at <h2>. When embedded mid-page this could skip a level; correct heading order is the host theme's responsibility. Override this template to change it. */ ?>
 	<h2 id="cmplz-tc-wf-title"><?php esc_html_e( 'Withdrawal form', 'complianz-terms-conditions' ); ?></h2>
 	<p><?php esc_html_e( 'Complete and submit this form only if you wish to withdraw from your contract.', 'complianz-terms-conditions' ); ?></p>
 	<p class="cmplz-tc-wf-note"><?php esc_html_e( 'Required fields are marked with an asterisk (*).', 'complianz-terms-conditions' ); ?></p>
@@ -191,7 +192,7 @@ foreach ( $wf_fields as $wf_f ) {
 		</div>
 	<?php endforeach; ?>
 
-	<?php /* Honeypot: hidden from users and assistive tech; genuine consumers never see or reach it. */ ?>
+	<?php /* Honeypot: hidden from users and assistive tech; genuine consumers never see or reach it. The focusable input inside this aria-hidden wrapper trips axe's aria-hidden-focus rule — accepted (ACC-m2): it is tabindex="-1" so no real user reaches it, and it must stay submittable so bots fill it. */ ?>
 	<div class="cmplz-tc-wf-hp" aria-hidden="true">
 		<label for="cmplz-tc-wf-website"><?php esc_html_e( 'Leave this field empty', 'complianz-terms-conditions' ); ?></label>
 		<input type="text" id="cmplz-tc-wf-website" name="cmplz_tc_wf_website" value="" tabindex="-1" autocomplete="off" />
