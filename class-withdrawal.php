@@ -111,8 +111,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 				return $this->fail( 'invalid_nonce', $this->preserve( $input ), __( 'Your session has expired. Please review the details below and submit again.', 'complianz-terms-conditions' ) );
 			}
 
-			// Minimum time-to-submit: the timestamp is mandatory and rendered server-side, so every
-			// genuine consumer has it while a bare scripted POST is bounced. Missing/non-numeric/too-recent soft-fail.
+			// Minimum time-to-submit: the timestamp is mandatory and rendered server-side, Missing/non-numeric/too-recent soft-fail.
 			$rendered = (string) ( isset( $input['cmplz_tc_wf_rendered'] ) ? $input['cmplz_tc_wf_rendered'] : '' );
 			if ( '' === $rendered || ! ctype_digit( $rendered ) || ( time() - (int) $rendered ) < $this->min_submit_seconds() ) {
 				return $this->fail( 'too_fast', $this->preserve( $input ), __( 'That was a little too quick. Please review the details below and submit again.', 'complianz-terms-conditions' ) );
@@ -142,8 +141,6 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			 */
 			do_action( 'cmplz_tc_withdrawal_validated', $data );
 
-			// Send the emails; the result (success | delivery_error | try_again_later) decides what
-			// the consumer sees. A suppressed send is never reported as success.
 			$status = $this->dispatch_emails( $data );
 			$token  = $this->store_state( array( 'status' => $status ) );
 
@@ -375,8 +372,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 				$errors['cmplz_tc_wf_email'] = __( 'Please enter a valid email address.', 'complianz-terms-conditions' );
 			}
 
-			// Length caps: bound attacker-controlled content that flows into both emails.
-			// Skip a field that already has a presence/format error.
+			// Length caps
 			foreach ( $this->field_max_lengths() as $key => $limit ) {
 				if ( isset( $errors[ $key ] ) ) {
 					continue;
@@ -652,9 +648,6 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			// Recipient resolves never-empty via the read-time filter.
 			$recipient = (string) cmplz_tc_get_value( 'withdrawal_notification_email' );
 
-			// Validate the admin-controlled recipient like the consumer address, falling back to
-			// the site admin email if malformed. Done before the filter so an integrator override
-			// keeps wp_mail()'s "Name <addr>" flexibility.
 			$recipient = $this->safe_email( $recipient );
 			if ( '' === $recipient ) {
 				$recipient = $this->safe_email( (string) get_option( 'admin_email' ) );
@@ -662,9 +655,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 
 			$subject = __( 'New withdrawal request', 'complianz-terms-conditions' );
 			$body    = $this->merchant_body( $fields, $submitted_at, $source_url );
-			$headers = $this->plain_text_headers();
+			$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
 
-			// Reply-To carries the consumer's validated address only.
 			$reply_to = $this->safe_email( $consumer );
 			if ( '' !== $reply_to ) {
 				$headers[] = 'Reply-To: ' . $reply_to;
@@ -736,13 +728,11 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 
 			$subject = __( 'We have received your withdrawal request', 'complianz-terms-conditions' );
 			$body    = $this->consumer_body( $fields, $submitted_at, $merchant_delivered );
-			$headers = $this->plain_text_headers();
+			$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
 
-			/** This filter is documented in send_merchant_notification(). */
+			/** This filters are documented in send_merchant_notification(). */
 			$subject = (string) apply_filters( 'cmplz_tc_withdrawal_consumer_subject', $subject, $fields );
-			/** This filter is documented in send_merchant_notification(). */
-			$body = (string) apply_filters( 'cmplz_tc_withdrawal_consumer_body', $body, $fields, $submitted_at );
-			/** This filter is documented in send_merchant_notification(). */
+			$body    = (string) apply_filters( 'cmplz_tc_withdrawal_consumer_body', $body, $fields, $submitted_at );
 			$headers = (array) apply_filters( 'cmplz_tc_withdrawal_consumer_headers', $headers, $recipient );
 
 			return (bool) wp_mail( $recipient, $subject, $body, $headers );
@@ -857,17 +847,6 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 */
 		private function format_timestamp( $timestamp ) {
 			return (string) wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $timestamp );
-		}
-
-		/**
-		 * Default plain-text email headers.
-		 *
-		 * @since 1.4.0
-		 *
-		 * @return array<int,string>
-		 */
-		private function plain_text_headers() {
-			return array( 'Content-Type: text/plain; charset=UTF-8' );
 		}
 
 		/**
