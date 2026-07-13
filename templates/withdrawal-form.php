@@ -2,19 +2,16 @@
 /**
  * Template: interactive EU withdrawal form (Directive 2023/2673, Art. 11a).
  *
- * Renders the online withdrawal function a consumer submits to withdraw from a
- * distance contract. Collects the EU model-form fields (§8 of the spec): name,
- * email and goods/service are required; address, order reference, order date and
- * an additional message are optional. The merchant identity/address is shown as a
- * pre-filled, non-editable heading. The date of withdrawal is the submission
- * timestamp, not a field.
+ * Renders the online withdrawal function a consumer submits to withdraw from a distance
+ * contract. Collects the EU model-form fields: name, email and goods/service are required;
+ * address, order reference, order date and an additional message are optional. The merchant
+ * identity/address is shown as a pre-filled, non-editable heading. The date of withdrawal is
+ * the submission timestamp, not a field.
  *
- * All labels/messages are translatable and rendered in the runtime locale. Labels
- * are programmatically associated with their controls, the required state and any
- * validation errors are announced, and the form is fully keyboard-operable
- * (NFR-A1/A2). The three hidden integrity fields (nonce, honeypot, render
- * timestamp) are rendered here as placeholders and consumed by the submission
- * handler (Task 7).
+ * All labels/messages are translatable and rendered in the runtime locale, with labels
+ * associated to their controls and required/error state announced. The three hidden integrity
+ * fields (nonce, honeypot, render timestamp) are rendered as placeholders and consumed by the
+ * submission handler.
  *
  * Rendered through cmplz_tc_get_template(), so `$args` is available in scope and a
  * theme override at `{theme}/complianz-terms-conditions/templates/withdrawal-form.php`
@@ -39,7 +36,7 @@ $wf_values   = isset( $args['values'] ) && is_array( $args['values'] ) ? $args['
 $wf_merchant = isset( $args['merchant_identity'] ) ? (string) $args['merchant_identity'] : '';
 $wf_action   = ! empty( $args['form_action'] ) ? (string) $args['form_action'] : admin_url( 'admin-post.php' );
 
-// §8 fields: name/email/goods required (Art. 11a minimum), the rest optional.
+// Fields: name/email/goods required (Art. 11a minimum), the rest optional.
 $wf_fields = array(
 	array(
 		'key'      => 'cmplz_tc_wf_name',
@@ -106,7 +103,7 @@ foreach ( $wf_fields as $wf_f ) {
 }
 ?>
 <form class="cmplz-tc-withdrawal-form" method="post" action="<?php echo esc_url( $wf_action ); ?>" aria-labelledby="cmplz-tc-wf-title">
-	<?php /* ACC-m4 (accepted): the form starts at <h2>. When embedded mid-page this could skip a level; correct heading order is the host theme's responsibility. Override this template to change it. */ ?>
+	<?php /* The form starts at <h2>; when embedded mid-page this could skip a level, but correct heading order is the host theme's responsibility. Override this template to change it. */ ?>
 	<h2 id="cmplz-tc-wf-title"><?php esc_html_e( 'Withdrawal form', 'complianz-terms-conditions' ); ?></h2>
 	<p><?php esc_html_e( 'Complete and submit this form only if you wish to withdraw from your contract.', 'complianz-terms-conditions' ); ?></p>
 	<p class="cmplz-tc-wf-note"><?php esc_html_e( 'Required fields are marked with an asterisk (*).', 'complianz-terms-conditions' ); ?></p>
@@ -192,13 +189,13 @@ foreach ( $wf_fields as $wf_f ) {
 		</div>
 	<?php endforeach; ?>
 
-	<?php /* Honeypot: hidden from users and assistive tech; genuine consumers never see or reach it. The focusable input inside this aria-hidden wrapper trips axe's aria-hidden-focus rule — accepted (ACC-m2): it is tabindex="-1" so no real user reaches it, and it must stay submittable so bots fill it. */ ?>
+	<?php /* Honeypot: hidden from users and assistive tech; genuine consumers never reach it. The focusable input inside this aria-hidden wrapper is intentional — tabindex="-1" so no real user reaches it, and it must stay submittable so bots fill it. */ ?>
 	<div class="cmplz-tc-wf-hp" aria-hidden="true">
 		<label for="cmplz-tc-wf-website"><?php esc_html_e( 'Leave this field empty', 'complianz-terms-conditions' ); ?></label>
 		<input type="text" id="cmplz-tc-wf-website" name="cmplz_tc_wf_website" value="" tabindex="-1" autocomplete="off" />
 	</div>
 
-	<?php // Nonce stays empty (JS hydrates it from the uncached endpoint, keeping the page cacheable); the render timestamp is server-side so the mandatory min-time gate (SEC-H1) works without JS. ?>
+	<?php // Nonce stays empty (JS hydrates it from the uncached endpoint, keeping the page cacheable); the render timestamp is server-side so the mandatory min-time gate works without JS. ?>
 	<input type="hidden" name="cmplz_tc_wf_nonce" value="" />
 	<input type="hidden" name="cmplz_tc_wf_rendered" value="<?php echo esc_attr( (string) time() ); ?>" />
 	<input type="hidden" name="action" value="cmplz_tc_submit_withdrawal" />

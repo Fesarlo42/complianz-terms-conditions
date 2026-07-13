@@ -2,8 +2,8 @@
 /**
  * Smoke test: confirms the plugin boots correctly under the PHPUnit harness.
  *
- * This is the TDD baseline test (Task 1). If this fails, the test environment
- * itself is broken — fix the harness before trusting any feature test.
+ * This is the TDD baseline test. If this fails, the test environment itself is
+ * broken — fix the harness before trusting any feature test.
  *
  * @package Complianz_Terms_Conditions
  */

@@ -800,7 +800,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			$html         = str_replace( '[checked_date]', esc_html( $checked_date ), $html );
 
 			// Point the withdrawal clause at the Withdrawal page; fall back to the site home when the
-			// page is absent, so the document degrades without a broken link or a leftover token (FR-8/FR-21).
+			// page is absent, so the document degrades without a broken link or a leftover token.
 			$withdrawal_form_link = $this->get_withdrawal_page_url();
 			if ( '' === $withdrawal_form_link ) {
 				$withdrawal_form_link = home_url( '/' );
@@ -1459,8 +1459,8 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 *
 		 * Shared by enqueue_assets() (the tracked Withdrawal page) and
 		 * render_withdrawal_form() (arbitrary-page block/shortcode embeds), so the
-		 * form's assets load wherever it renders (FR-7). wp_enqueue_*() is
-		 * idempotent, so calling this more than once per request is safe.
+		 * form's assets load wherever it renders. wp_enqueue_*() is idempotent, so
+		 * calling this more than once per request is safe.
 		 *
 		 * @since  1.4.0
 		 * @access public
@@ -1482,8 +1482,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 				cmplz_tc_version,
 				true
 			);
-			// The nonce endpoint URL is static and cacheable; only the nonce it
-			// serves must stay uncached (FR-13 / NFR-P1).
+			// The nonce endpoint URL is static and cacheable; only the nonce it serves stays uncached.
 			wp_localize_script(
 				'cmplz-tc-withdrawal-form',
 				'cmplz_tc_withdrawal',
@@ -1710,7 +1709,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 					}
 				}
 
-				// Create the Withdrawal page when the provided-form path is selected (FR-6/FR-9).
+				// Create the Withdrawal page when the provided-form path is selected.
 				$this->maybe_create_withdrawal_page();
 			}
 			$data = array(
@@ -1831,7 +1830,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 							}
 						}
 
-						// The Withdrawal page is tracked by option, so its row is rendered here explicitly (FR-6).
+						// The Withdrawal page is tracked by option, so its row is rendered here explicitly.
 						if ( $this->uses_withdrawal_form() ) {
 							$withdrawal_id = $this->get_withdrawal_page_id();
 							if ( ! $withdrawal_id ) {
@@ -2129,7 +2128,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		 *
 		 * True on the provided-form path: returns are offered (if_returns = yes)
 		 * and the merchant did not opt for their own link (if_returns_custom = no).
-		 * A fresh configuration resolves to this path by default (FR-2).
+		 * A fresh configuration resolves to this path by default.
 		 *
 		 * @since  1.4.0
 		 * @access public
@@ -2166,12 +2165,10 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		/**
 		 * Render the interactive withdrawal form (block + shortcode callback).
 		 *
-		 * Single render path for both the [cmplz-tc-withdrawal-form] shortcode and
-		 * the complianztc/withdrawal-form block, so the two produce identical output
-		 * (FR-7). Passes the merchant identity heading from the generator config to
-		 * the Task-4 template and enqueues the form assets on render so embeds on an
-		 * arbitrary page still load their CSS/JS. The template escapes all output, so
-		 * the string is returned without the document wp_kses() pass (which would
+		 * Single render path for both the [cmplz-tc-withdrawal-form] shortcode and the
+		 * complianztc/withdrawal-form block, so the two produce identical output. Enqueues the
+		 * form assets on render so arbitrary-page embeds load their CSS/JS. The template escapes
+		 * all output, so the string is returned without the document wp_kses() pass (which would
 		 * strip the form controls).
 		 *
 		 * @since  1.4.0
@@ -2191,9 +2188,8 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			}
 			$this->withdrawal_form_rendered = true;
 
-			// Own-link (or returns-off) path: render a link to the merchant's own
-			// withdrawal function instead of the form. A pre-existing page is never
-			// deleted (FR-9), so this keeps the page coherent without a live form.
+			// Own-link (or returns-off) path: render a link to the merchant's own withdrawal
+			// function instead of the form (a pre-existing page is never deleted).
 			if ( ! $this->uses_withdrawal_form() ) {
 				return $this->withdrawal_own_link_html();
 			}
@@ -2269,8 +2265,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		/**
 		 * Build the on-screen confirmation shown after a successful submission.
 		 *
-		 * Carries no personal data (FR-19 / NFR-S4); the acknowledgement of the
-		 * submitted details is the consumer email added in Task 9.
+		 * Carries no personal data; the acknowledgement of the submitted details is the consumer email.
 		 *
 		 * @since  1.4.0
 		 * @access private
@@ -2287,9 +2282,8 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		/**
 		 * Build the on-screen error shown when a submission could not be delivered.
 		 *
-		 * Phase 1 stores no record, so a failed dispatch must be surfaced to the
-		 * consumer (FR-20 refinement): it tells them to contact the merchant directly
-		 * and shows the merchant's identity and contact from the general settings.
+		 * No request is stored, so a failed dispatch must be surfaced to the consumer: it tells
+		 * them to contact the merchant directly and shows the merchant's identity and contact.
 		 *
 		 * @since  1.4.0
 		 * @access private
@@ -2310,12 +2304,11 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		}
 
 		/**
-		 * Build the on-screen message shown when a send was throttled (SEC-H1).
+		 * Build the on-screen message shown when a send was throttled.
 		 *
-		 * A transient anti-abuse throttle suppressed the emails, so nothing was sent
-		 * and a retry will work. The copy is deliberately general — it must not reveal
-		 * that a limit was hit or reflect badly on the merchant — and never claims
-		 * success (Refinement 2).
+		 * A transient anti-abuse throttle suppressed the emails, so nothing was sent and a retry
+		 * will work. The copy is deliberately general — it must not reveal that a limit was hit or
+		 * reflect badly on the merchant — and never claims success.
 		 *
 		 * @since  1.4.0
 		 * @access private
@@ -2330,7 +2323,7 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		}
 
 		/**
-		 * Build the link shown in place of the form on the own-link path (FR-9/FR-21).
+		 * Build the link shown in place of the form on the own-link path.
 		 *
 		 * @since  1.4.0
 		 * @access private
@@ -2351,9 +2344,8 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		/**
 		 * Build the merchant identity/address block shown atop the withdrawal form.
 		 *
-		 * Combines the generator's organisation name and company address into a
-		 * plain-text, multi-line string that the template renders as a pre-filled,
-		 * non-editable heading (FR-10, §8). Empty parts are dropped.
+		 * Combines the generator's organisation name and company address into a plain-text,
+		 * multi-line string rendered as a pre-filled, non-editable heading. Empty parts are dropped.
 		 *
 		 * @since  1.4.0
 		 * @access public
@@ -2370,13 +2362,12 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		}
 
 		/**
-		 * Build the fuller merchant block for the consumer acknowledgement (§9.2).
+		 * Build the fuller merchant block for the consumer acknowledgement.
 		 *
-		 * Extends get_merchant_identity() (name + address, used for the form heading)
-		 * with the merchant's contact line, which Art. 11a requires in the durable-
-		 * medium receipt. The contact reflects how the merchant chose to be reached
-		 * (email or contact page); when only a phone-on-website was configured it
-		 * falls back to the never-empty notification email. Empty parts are dropped.
+		 * Extends get_merchant_identity() (name + address) with the merchant's contact line, which
+		 * Art. 11a requires in the durable-medium receipt. The contact reflects how the merchant
+		 * chose to be reached (email or contact page); when only a phone-on-website was configured
+		 * it falls back to the never-empty notification email. Empty parts are dropped.
 		 *
 		 * @since  1.4.0
 		 * @access public
@@ -2474,9 +2465,8 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		/**
 		 * Create the Withdrawal page only when the provided-form path is selected.
 		 *
-		 * Called from the page-creation flow. On the own-link path this is a no-op
-		 * and never removes an existing page, so switching paths only swaps the
-		 * generated clause and link — content is never deleted (FR-9).
+		 * Called from the page-creation flow. On the own-link path this is a no-op and never
+		 * removes an existing page, so switching paths only swaps the generated clause and link.
 		 *
 		 * @since  1.4.0
 		 * @access public
@@ -2498,9 +2488,8 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 		/**
 		 * Return the tracked Withdrawal page ID, or false when unavailable.
 		 *
-		 * Reads the cmplz_tc_withdrawal_page_id option and confirms the page still
-		 * exists and is published; a trashed or deleted page resolves to false so
-		 * callers can degrade gracefully (FR-8).
+		 * Reads the cmplz_tc_withdrawal_page_id option and confirms the page still exists and is
+		 * published; a trashed or deleted page resolves to false so callers can degrade gracefully.
 		 *
 		 * @since  1.4.0
 		 * @access public

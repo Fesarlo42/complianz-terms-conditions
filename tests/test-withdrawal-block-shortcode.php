@@ -1,10 +1,9 @@
 <?php
 /**
  * Tests for the withdrawal-form Gutenberg block + [cmplz-tc-withdrawal-form]
- * shortcode (FR-7), and the merchant-identity heading fed from the generator
- * config (FR-10, §8).
+ * shortcode, and the merchant-identity heading fed from the generator config.
  *
- * Both entry points must render the Task-4 template through
+ * Both entry points must render the template through
  * cmplz_tc_get_template( 'withdrawal-form.php', $args ) and produce identical
  * output. Because the form may be embedded on an arbitrary page (not only the
  * tracked Withdrawal page), the form's CSS/JS must be enqueued on render.
@@ -48,7 +47,7 @@ class Test_Withdrawal_Block_Shortcode extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-7 — shortcode.
+	// Shortcode.
 	// ---------------------------------------------------------------------
 
 	/** The shortcode must be registered. */
@@ -61,12 +60,12 @@ class Test_Withdrawal_Block_Shortcode extends WP_UnitTestCase {
 		$out = do_shortcode( '[' . $this->shortcode . ']' );
 		$this->assertStringContainsString( '<form', $out, 'The shortcode must render the form.' );
 		$this->assertStringContainsString( 'cmplz-tc-withdrawal-form', $out );
-		$this->assertMatchesRegularExpression( '/name=["\']cmplz_tc_wf_name["\']/', $out, 'A §8 field must be present.' );
+		$this->assertMatchesRegularExpression( '/name=["\']cmplz_tc_wf_name["\']/', $out, 'A form field must be present.' );
 		$this->assertStringNotContainsString( '[' . $this->shortcode . ']', $out, 'No raw shortcode may leak into the output.' );
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-7 — block.
+	// Block.
 	// ---------------------------------------------------------------------
 
 	/** The block must be registered with a render callback. */
@@ -84,7 +83,7 @@ class Test_Withdrawal_Block_Shortcode extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/name=["\']cmplz_tc_wf_name["\']/', $out );
 	}
 
-	/** FR-7: block and shortcode must produce identical output. */
+	/** Block and shortcode must produce identical output. */
 	public function test_block_and_shortcode_produce_identical_output() {
 		$block        = WP_Block_Type_Registry::get_instance()->get_registered( $this->block_name );
 		$block_output = call_user_func( $block->render_callback, array(), '' );
@@ -110,7 +109,7 @@ class Test_Withdrawal_Block_Shortcode extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-10 / §8 — merchant identity heading from the generator config.
+	// Merchant identity heading from the generator config.
 	// ---------------------------------------------------------------------
 
 	/** The merchant name + address configured in the wizard appear as a heading. */
@@ -144,7 +143,7 @@ class Test_Withdrawal_Block_Shortcode extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-7 — assets enqueue on render for arbitrary-page embeds.
+	// Assets enqueue on render for arbitrary-page embeds.
 	// ---------------------------------------------------------------------
 
 	/** Rendering the form must enqueue its CSS/JS even off the tracked page. */

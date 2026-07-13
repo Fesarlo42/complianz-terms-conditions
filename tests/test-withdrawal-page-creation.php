@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for the Withdrawal page creation + asset enqueue (FR-6, FR-8, FR-9, §7.1).
+ * Tests for the Withdrawal page creation + asset enqueue.
  *
  * The provided-form path must be able to create a published "Withdrawal" page that
  * embeds the withdrawal form block/shortcode, track it via the option
@@ -101,14 +101,14 @@ class Test_Withdrawal_Page_Creation extends WP_UnitTestCase {
 		$this->assertFalse( $this->doc()->uses_withdrawal_form() );
 	}
 
-	/** FR-2: a fresh configuration defaults to the provided form. */
+	/** A fresh configuration defaults to the provided form. */
 	public function test_uses_withdrawal_form_true_on_fresh_default() {
 		delete_option( $this->options_key );
 		$this->assertTrue( $this->doc()->uses_withdrawal_form() );
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-6 — page creation + option tracking.
+	// Page creation + option tracking.
 	// ---------------------------------------------------------------------
 
 	/** create_page('withdrawal') publishes a page and records its id in the option. */
@@ -127,7 +127,7 @@ class Test_Withdrawal_Page_Creation extends WP_UnitTestCase {
 		$this->assertSame( 'publish', $post->post_status );
 	}
 
-	/** FR-6/FR-7: the page embeds the withdrawal form block or its equivalent shortcode. */
+	/** The page embeds the withdrawal form block or its equivalent shortcode. */
 	public function test_withdrawal_page_content_embeds_the_form() {
 		$page_id = $this->doc()->create_page( 'withdrawal' );
 		$content = get_post( $page_id )->post_content;
@@ -164,7 +164,7 @@ class Test_Withdrawal_Page_Creation extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-8 — linkage + graceful degrade.
+	// Linkage + graceful degrade.
 	// ---------------------------------------------------------------------
 
 	/** With no page created the URL is empty so the T&C link can degrade gracefully. */
@@ -227,7 +227,7 @@ class Test_Withdrawal_Page_Creation extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-9 — switching paths must never delete content.
+	// Switching paths must never delete content.
 	// ---------------------------------------------------------------------
 
 	/** After creating on the form path, switching to the own link keeps the page intact. */
@@ -240,10 +240,10 @@ class Test_Withdrawal_Page_Creation extends WP_UnitTestCase {
 		$this->set_own_link_path();
 		$this->doc()->maybe_create_withdrawal_page();
 
-		$this->assertSame( $page_id, (int) get_option( $this->page_option ), 'FR-9: the tracked page id must survive a path switch.' );
+		$this->assertSame( $page_id, (int) get_option( $this->page_option ), 'The tracked page id must survive a path switch.' );
 		$post = get_post( $page_id );
 		$this->assertInstanceOf( 'WP_Post', $post );
-		$this->assertSame( 'publish', $post->post_status, 'FR-9: switching paths must never delete the withdrawal page.' );
+		$this->assertSame( 'publish', $post->post_status, 'Switching paths must never delete the withdrawal page.' );
 	}
 
 	// ---------------------------------------------------------------------
@@ -269,7 +269,7 @@ class Test_Withdrawal_Page_Creation extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// Wizard "Create document" table — the Withdrawal row (FR-6).
+	// Wizard "Create document" table — the Withdrawal row.
 	// ---------------------------------------------------------------------
 
 	/** Capture the wizard pages step, loading the admin icon helper it relies on. */

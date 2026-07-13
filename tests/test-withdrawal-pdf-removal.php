@@ -106,7 +106,7 @@ class Test_Withdrawal_Pdf_Removal extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// Upgrade cleanup (FR-24).
+	// Upgrade cleanup.
 	// ---------------------------------------------------------------------
 
 	/** Upgrading from a pre-1.4.0 version must delete the stale PDF-languages option. */

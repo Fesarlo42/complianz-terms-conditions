@@ -143,9 +143,8 @@ register_block_type(
  * Renders the withdrawal-form block on the front end.
  *
  * Delegates to cmplz_tc_document::render_withdrawal_form() so the block and the
- * [cmplz-tc-withdrawal-form] shortcode produce identical output (FR-7). The
- * method also enqueues the form's front-end assets on render, covering embeds on
- * arbitrary pages.
+ * [cmplz-tc-withdrawal-form] shortcode produce identical output. The method also
+ * enqueues the form's front-end assets on render, covering embeds on arbitrary pages.
  *
  * @since  1.4.0
  * @access public

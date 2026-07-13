@@ -4,11 +4,11 @@
  * Two jobs:
  *  1. Fetch a fresh nonce + render timestamp from the uncached REST endpoint and
  *     populate the hidden integrity fields, so a fully cached form page can never
- *     submit a stale nonce (FR-13 / NFR-P1).
+ *     submit a stale nonce.
  *  2. After a Post/Redirect/Get re-render, move focus to the validation error
  *     summary — or, on the result screens, to the confirmation/error message —
  *     so assistive tech announces it (static server-rendered content that
- *     role="status"/"alert" alone would not announce; ACC-S1).
+ *     role="status"/"alert" alone would not announce).
  *
  * @package Complianz_Terms_Conditions
  */
@@ -54,7 +54,7 @@
 
 	function focusResult() {
 		// After the PRG, the confirmation/error is server-rendered static content, so
-		// role="status"/"alert" alone will not announce it — move focus to it (ACC-S1).
+		// role="status"/"alert" alone will not announce it — move focus to it.
 		var result = document.querySelector(
 			'.cmplz-tc-wf-confirmation, .cmplz-tc-wf-error'
 		);

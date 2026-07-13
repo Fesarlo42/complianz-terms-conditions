@@ -1,14 +1,9 @@
 <?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- File name follows plugin slug convention; class name cannot be changed without breaking the codebase.
 /**
- * Withdrawal submission handler: validation, anti-abuse and Post/Redirect/Get.
+ * Withdrawal submission handler: server-side validation, anti-abuse and Post/Redirect/Get.
  *
- * Handles posts to admin-post.php from the interactive withdrawal form. The
- * public endpoint performs no privileged action (NFR-S3): it validates and
- * sanitizes server-side (FR-15), screens for abuse (FR-14), and either returns
- * the consumer to the form with preserved values and errors or shows an
- * on-screen confirmation (FR-16/FR-19) — all via a short-lived transient so no
- * personal data appears in the URL (NFR-S4). Emails are Task 9's; a valid
- * submission fires the cmplz_tc_withdrawal_validated action as that seam.
+ * The public endpoint does nothing privileged; a valid submission fires the
+ * cmplz_tc_withdrawal_validated action and dispatches the emails.
  *
  * @package Complianz_Terms_Conditions
  * @license GPL-2.0-or-later
@@ -36,7 +31,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		/** Transient key prefix for the Post/Redirect/Get state. */
 		const STATE_PREFIX = 'cmplz_tc_wf_state_';
 
-		/** Option flag raised when an email could not be sent (FR-20). */
+		/** Option flag raised when an email could not be sent. */
 		const MAIL_FAILURE_OPTION = 'cmplz_tc_withdrawal_mail_failure';
 
 		/** Query arg that dismisses the delivery-failure admin notice. */
@@ -53,36 +48,29 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			add_action( 'admin_post_cmplz_tc_submit_withdrawal', array( $this, 'handle_submission' ) );
 			add_action( 'admin_post_nopriv_cmplz_tc_submit_withdrawal', array( $this, 'handle_submission' ) );
 
-			// FR-20: surface a delivery failure to the merchant via a persistent admin notice.
 			add_action( 'admin_notices', array( $this, 'render_mail_failure_notice' ) );
 			add_action( 'admin_init', array( $this, 'maybe_dismiss_mail_failure_notice' ) );
 
-			// NB dispatch_emails() is NOT hooked here: process() calls it directly so its
-			// success/failure can drive the consumer's on-screen outcome. The
-			// cmplz_tc_withdrawal_validated action remains a fire-and-forget seam for integrators.
+			// dispatch_emails() is intentionally not hooked here: process() calls it directly so its
+			// result can drive the consumer's screen. cmplz_tc_withdrawal_validated stays a seam for integrators.
 		}
 
 		/**
 		 * Handle an admin-post submission: process, then redirect (PRG).
-		 *
-		 * The nonce is a soft signal verified in process() (FR-13) and every field
-		 * is sanitized there, so the raw $_POST is passed through as-is.
 		 *
 		 * @since 1.4.0
 		 *
 		 * @return void
 		 */
 		public function handle_submission() {
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Soft nonce (FR-13) + per-field sanitization happen in process().
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Soft nonce + per-field sanitization happen in process().
 			$result = $this->process( (array) wp_unslash( $_POST ) );
 			wp_safe_redirect( $result['redirect'] );
 			exit;
 		}
 
 		/**
-		 * Validate, screen and route a submission without redirecting.
-		 *
-		 * Separated from handle_submission() so every branch is unit-testable.
+		 * Validate, screen and route a submission without redirecting (the testable core of the handler).
 		 *
 		 * @since 1.4.0
 		 *
@@ -96,20 +84,17 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * }
 		 */
 		public function process( array $input ) {
-			// Per-client form-post rate limit (the email-send limit is Task 9's).
 			if ( ! $this->within_rate_limit() ) {
 				return $this->fail( 'rate_limited', $this->preserve( $input ), __( 'Too many attempts. Please wait a moment and try again.', 'complianz-terms-conditions' ) );
 			}
 
-			// Honeypot: a filled hidden field means a bot. Silent drop, no state.
+			// Honeypot: a filled hidden field means a bot — silent drop.
 			if ( '' !== trim( (string) ( isset( $input['cmplz_tc_wf_website'] ) ? $input['cmplz_tc_wf_website'] : '' ) ) ) {
 				return $this->reject_spam();
 			}
 
 			/**
-			 * Opt-in spam gate (off by default): a place to plug in a CAPTCHA, proof-of-work
-			 * or similar for a site under active abuse. Returning true drops the submission
-			 * silently, exactly like the honeypot.
+			 * Opt-in spam gate (off by default): return true to drop the submission silently.
 			 *
 			 * @since 1.4.0
 			 *
@@ -120,22 +105,19 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 				return $this->reject_spam();
 			}
 
-			// Nonce: present-but-invalid is a soft failure; absent does not block (NFR-S3).
+			// Nonce: present-but-invalid is a soft failure; absent does not block.
 			$nonce = (string) ( isset( $input['cmplz_tc_wf_nonce'] ) ? $input['cmplz_tc_wf_nonce'] : '' );
 			if ( '' !== $nonce && ! $this->verify_nonce( $nonce ) ) {
 				return $this->fail( 'invalid_nonce', $this->preserve( $input ), __( 'Your session has expired. Please review the details below and submit again.', 'complianz-terms-conditions' ) );
 			}
 
-			// Minimum time-to-submit. The render timestamp is mandatory (SEC-H1): the template
-			// renders it server-side so every genuine consumer (JS or not) submits with it,
-			// while a bare scripted POST that omits it is bounced here rather than sailing
-			// through. A missing, non-numeric or too-recent timestamp all soft-fail.
+			// Minimum time-to-submit: the timestamp is mandatory and rendered server-side, so every
+			// genuine consumer has it while a bare scripted POST is bounced. Missing/non-numeric/too-recent soft-fail.
 			$rendered = (string) ( isset( $input['cmplz_tc_wf_rendered'] ) ? $input['cmplz_tc_wf_rendered'] : '' );
 			if ( '' === $rendered || ! ctype_digit( $rendered ) || ( time() - (int) $rendered ) < $this->min_submit_seconds() ) {
 				return $this->fail( 'too_fast', $this->preserve( $input ), __( 'That was a little too quick. Please review the details below and submit again.', 'complianz-terms-conditions' ) );
 			}
 
-			// Authoritative server-side validation.
 			$clean = array();
 			foreach ( $this->fields() as $key => $spec ) {
 				$clean[ $key ] = $this->sanitize_field( (string) ( isset( $input[ $key ] ) ? $input[ $key ] : '' ), $spec['sanitize'] );
@@ -145,7 +127,6 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 				return $this->fail( 'invalid', $clean, '', $errors );
 			}
 
-			// Valid. Build the payload for the seam and the emails.
 			$data = array(
 				'fields'       => $clean,
 				'submitted_at' => time(),
@@ -161,9 +142,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			 */
 			do_action( 'cmplz_tc_withdrawal_validated', $data );
 
-			// Send the plugin's emails; the result (success | delivery_error | try_again_later)
-			// decides what the consumer sees (FR-19/FR-20 / SEC-H1 refinement). A suppressed
-			// send is never reported as success.
+			// Send the emails; the result (success | delivery_error | try_again_later) decides what
+			// the consumer sees. A suppressed send is never reported as success.
 			$status = $this->dispatch_emails( $data );
 			$token  = $this->store_state( array( 'status' => $status ) );
 
@@ -178,14 +158,11 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Mint the withdrawal nonce in a consistent (logged-out) context.
+		 * Mint the withdrawal nonce in a forced logged-out context.
 		 *
-		 * A cookie-authenticated REST request without an X-WP-Nonce header is
-		 * downgraded to the logged-out user by core, so a per-user nonce minted
-		 * there would never verify against a logged-in admin-post submission.
-		 * Minting and verifying both in a forced logged-out context keeps them
-		 * consistent for logged-in and logged-out visitors alike; the session
-		 * token still comes from the cookie, so the nonce stays per-browser.
+		 * A cookie-authenticated REST GET without an X-WP-Nonce header is downgraded to the
+		 * logged-out user by core, so minting and verifying both logged-out keeps the nonce
+		 * consistent for logged-in and logged-out visitors alike.
 		 *
 		 * @since 1.4.0
 		 *
@@ -308,9 +285,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Field specification: which are required, how each is sanitized, and the
-		 * presence-error message for the required ones. validate() is driven off this,
-		 * so a field's required-ness lives here as data rather than as hardcoded checks.
+		 * Field spec: required flag, sanitize type, and (for required fields) the presence-error
+		 * message. validate() reads this, so required-ness is data rather than hardcoded.
 		 *
 		 * @since 1.4.0
 		 *
@@ -353,7 +329,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Sanitize a single value by field type (NFR-S1).
+		 * Sanitize a single value by field type.
 		 *
 		 * @since 1.4.0
 		 *
@@ -383,7 +359,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		private function validate( array $clean ) {
 			$errors = array();
 
-			// Required-field presence, driven by the field spec (not hardcoded per field).
+			// Required-field presence, driven by the field spec.
 			foreach ( $this->fields() as $key => $spec ) {
 				if ( empty( $spec['required'] ) ) {
 					continue;
@@ -393,14 +369,14 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 				}
 			}
 
-			// Email format is a rule beyond mere presence, so it stays a dedicated check.
+			// Email format is a rule beyond presence, so it stays a dedicated check.
 			$email = trim( (string) ( isset( $clean['cmplz_tc_wf_email'] ) ? $clean['cmplz_tc_wf_email'] : '' ) );
 			if ( ! isset( $errors['cmplz_tc_wf_email'] ) && '' !== $email && ! is_email( $email ) ) {
 				$errors['cmplz_tc_wf_email'] = __( 'Please enter a valid email address.', 'complianz-terms-conditions' );
 			}
 
-			// Length caps (SEC-M2): bound attacker-controlled content that flows verbatim
-			// into both emails. A field that already has a presence/format error is skipped.
+			// Length caps: bound attacker-controlled content that flows into both emails.
+			// Skip a field that already has a presence/format error.
 			foreach ( $this->field_max_lengths() as $key => $limit ) {
 				if ( isset( $errors[ $key ] ) ) {
 					continue;
@@ -415,10 +391,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Maximum accepted length, in characters, per field (SEC-M2).
-		 *
-		 * Generous enough that a genuine consumer never hits them; they only stop the
-		 * multi-megabyte payloads that would otherwise inflate every outbound email.
+		 * Maximum accepted length per field, in characters. Generous enough that a genuine
+		 * consumer never hits them; they only stop multi-megabyte payloads inflating the emails.
 		 *
 		 * @since 1.4.0
 		 *
@@ -477,10 +451,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		/**
 		 * The best-effort client IP used to key every rate limit.
 		 *
-		 * Uses REMOTE_ADDR — the only address the server can trust — and never the
-		 * spoofable X-Forwarded-For. A site behind a trusted CDN/proxy can supply the
-		 * real client IP via the filter so a shared edge IP does not bucket every
-		 * visitor into one limit (SEC-M1).
+		 * Uses REMOTE_ADDR (never the spoofable X-Forwarded-For); a site behind a CDN/proxy can
+		 * supply the real client IP via the filter so a shared edge IP doesn't bucket everyone.
 		 *
 		 * @since 1.4.0
 		 *
@@ -501,8 +473,6 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 
 		/**
 		 * Increment a windowed transient counter and report whether it is within the max.
-		 *
-		 * The shared body of every best-effort rate limit / throttle below.
 		 *
 		 * @since 1.4.0
 		 *
@@ -608,10 +578,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		/**
 		 * Lifetime in seconds of the PRG state transient.
 		 *
-		 * Kept short (SEC-L3): the failure path briefly stores sanitized PII for the
-		 * re-render, and on a cacheless site a transient lives in wp_options. The state
-		 * is one-shot (consumed on the redirect), so this is only the cap for an
-		 * abandoned redirect — 5 minutes is ample for the round-trip.
+		 * Kept short: the failure path briefly stores sanitized PII and the state is one-shot,
+		 * so this only caps an abandoned redirect — 5 minutes is ample for the round-trip.
 		 *
 		 * @since 1.4.0
 		 *
@@ -622,28 +590,21 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Send the merchant notification and consumer acknowledgement (FR-17/FR-18).
-		 *
-		 * Hooked to cmplz_tc_withdrawal_validated. The acknowledgement goes to a
-		 * consumer-supplied address, so the dispatch is rate-limited in its own
-		 * right (FR-14); on any wp_mail() failure a persistent admin notice is
-		 * raised (FR-20) since Phase 1 stores no record to retry from.
+		 * Send the merchant notification and consumer acknowledgement.
 		 *
 		 * @since 1.4.0
 		 *
-		 * @param  mixed $data Action payload; expected to be the array of sanitized
-		 *                     fields, submission timestamp and source URL.
-		 * @return string       'success' when both emails were accepted (or nothing
-		 *                      needed sending), 'delivery_error' when a send failed (a
-		 *                      notice is recorded), or 'try_again_later' when a throttle
-		 *                      suppressed the send so the consumer should retry.
+		 * @param  mixed $data Action payload: sanitized fields, submission timestamp and source URL.
+		 * @return string      'success' (both sent, or nothing to send), 'delivery_error' (a send
+		 *                     failed; a notice is recorded), or 'try_again_later' (a throttle
+		 *                     suppressed the send).
 		 */
 		public function dispatch_emails( $data ) {
 			if ( ! is_array( $data ) || empty( $data['fields'] ) || ! is_array( $data['fields'] ) ) {
 				return 'success';
 			}
 
-			// Own-link (or returns-off) path: the plugin sends no email (spec §7 / scenario 4).
+			// Own-link (or returns-off) path: the plugin sends no email.
 			if ( ! COMPLIANZ_TC::$document->uses_withdrawal_form() ) {
 				return 'success';
 			}
@@ -651,11 +612,9 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			$fields   = $data['fields'];
 			$consumer = isset( $fields['cmplz_tc_wf_email'] ) ? (string) $fields['cmplz_tc_wf_email'] : '';
 
-			// FR-14 / SEC-H1: rate-limit the SEND, not only the form post, across three
-			// layers — per-client (IP), per-recipient (throttles amplification aimed at one
-			// address), and a site-wide ceiling (bounds a distributed / IP-rotating flood).
-			// Any trip suppresses BOTH emails and asks the consumer to retry: the request is
-			// never half-sent, and a suppressed send is never reported as success.
+			// Rate-limit the SEND (not just the form post) across three layers: per-client IP,
+			// per-recipient (amplification aimed at one address), and a site-wide ceiling
+			// (distributed / IP-rotating floods). Any trip suppresses BOTH emails and asks the consumer to retry.
 			if ( ! $this->within_email_rate_limit()
 				|| ! $this->within_recipient_email_limit( $consumer )
 				|| ! $this->within_global_email_limit() ) {
@@ -667,7 +626,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			$source_url   = isset( $data['source_url'] ) ? (string) $data['source_url'] : '';
 
 			$merchant_ok = $this->send_merchant_notification( $fields, $submitted_at, $source_url, $consumer );
-			// The acknowledgement wording depends on whether the merchant actually received the request.
+			// The acknowledgement wording depends on whether the merchant received the request.
 			$consumer_ok = $this->send_consumer_acknowledgement( $fields, $submitted_at, $consumer, $merchant_ok );
 
 			if ( $merchant_ok && $consumer_ok ) {
@@ -679,24 +638,23 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Email the configured recipient with the full submission (FR-17 / §9.1).
+		 * Email the configured recipient with the full submission.
 		 *
 		 * @since 1.4.0
 		 *
-		 * @param  array  $fields       Sanitized §8 fields.
+		 * @param  array  $fields       Sanitized form fields.
 		 * @param  int    $submitted_at Submission timestamp.
 		 * @param  string $source_url   The page the form was submitted from.
 		 * @param  string $consumer     The consumer's email (Reply-To).
 		 * @return bool                 True when wp_mail() reports success.
 		 */
 		private function send_merchant_notification( $fields, $submitted_at, $source_url, $consumer ) {
-			// Recipient resolves never-empty via the Task-2b read-time filter.
+			// Recipient resolves never-empty via the read-time filter.
 			$recipient = (string) cmplz_tc_get_value( 'withdrawal_notification_email' );
 
-			// SEC-L1: validate the admin-controlled recipient the same way the consumer
-			// address is, falling back to the always-valid site admin email if it is
-			// malformed. Done before the recipient filter so an integrator override keeps
-			// wp_mail()'s full flexibility (e.g. a "Name <addr>" recipient).
+			// Validate the admin-controlled recipient like the consumer address, falling back to
+			// the site admin email if malformed. Done before the filter so an integrator override
+			// keeps wp_mail()'s "Name <addr>" flexibility.
 			$recipient = $this->safe_email( $recipient );
 			if ( '' === $recipient ) {
 				$recipient = $this->safe_email( (string) get_option( 'admin_email' ) );
@@ -706,7 +664,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			$body    = $this->merchant_body( $fields, $submitted_at, $source_url );
 			$headers = $this->plain_text_headers();
 
-			// Reply-To carries the consumer's validated address only (NFR-S2).
+			// Reply-To carries the consumer's validated address only.
 			$reply_to = $this->safe_email( $consumer );
 			if ( '' !== $reply_to ) {
 				$headers[] = 'Reply-To: ' . $reply_to;
@@ -718,7 +676,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			 * @since 1.4.0
 			 *
 			 * @param string $recipient The resolved recipient address.
-			 * @param array  $fields    Sanitized §8 fields.
+			 * @param array  $fields    Sanitized form fields.
 			 */
 			$recipient = (string) apply_filters( 'cmplz_tc_withdrawal_merchant_recipient', $recipient, $fields );
 
@@ -728,7 +686,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			 * @since 1.4.0
 			 *
 			 * @param string $subject The subject line.
-			 * @param array  $fields  Sanitized §8 fields.
+			 * @param array  $fields  Sanitized form fields.
 			 */
 			$subject = (string) apply_filters( 'cmplz_tc_withdrawal_merchant_subject', $subject, $fields );
 
@@ -738,7 +696,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			 * @since 1.4.0
 			 *
 			 * @param string $body         The plain-text body.
-			 * @param array  $fields       Sanitized §8 fields.
+			 * @param array  $fields       Sanitized form fields.
 			 * @param int    $submitted_at Submission timestamp.
 			 * @param string $source_url   The submitting page URL.
 			 */
@@ -758,11 +716,11 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Email the consumer the durable-medium acknowledgement (FR-18 / §9.2).
+		 * Email the consumer the durable-medium acknowledgement.
 		 *
 		 * @since 1.4.0
 		 *
-		 * @param  array  $fields            Sanitized §8 fields.
+		 * @param  array  $fields            Sanitized form fields.
 		 * @param  int    $submitted_at      Submission timestamp.
 		 * @param  string $consumer          The consumer's email (recipient).
 		 * @param  bool   $merchant_delivered Whether the merchant notification was accepted.
@@ -791,11 +749,11 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Build the plain-text merchant notification body (§9.1).
+		 * Build the plain-text merchant notification body.
 		 *
 		 * @since 1.4.0
 		 *
-		 * @param  array  $fields       Sanitized §8 fields.
+		 * @param  array  $fields       Sanitized form fields.
 		 * @param  int    $submitted_at Submission timestamp.
 		 * @param  string $source_url   The submitting page URL.
 		 * @return string               Plain-text body.
@@ -814,11 +772,11 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Build the plain-text consumer acknowledgement body (§9.2).
+		 * Build the plain-text consumer acknowledgement body.
 		 *
 		 * @since 1.4.0
 		 *
-		 * @param  array $fields            Sanitized §8 fields.
+		 * @param  array $fields            Sanitized form fields.
 		 * @param  int   $submitted_at      Submission timestamp.
 		 * @param  bool  $merchant_delivered Whether the merchant notification was accepted.
 		 * @return string                    Plain-text body.
@@ -848,7 +806,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Human-readable, translatable labels for the §8 fields, in display order.
+		 * Human-readable, translatable labels for the form fields, in display order.
 		 *
 		 * @since 1.4.0
 		 *
@@ -870,12 +828,12 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		/**
 		 * Render the non-empty submitted fields as "Label: value" lines.
 		 *
-		 * Values are already sanitized (Task 7); the body is plain text, so no HTML
-		 * escaping is applied (it would corrupt legitimate characters).
+		 * Values are already sanitized and the body is plain text, so no HTML escaping is
+		 * applied (it would corrupt legitimate characters).
 		 *
 		 * @since 1.4.0
 		 *
-		 * @param  array $fields Sanitized §8 fields.
+		 * @param  array $fields Sanitized form fields.
 		 * @return array<int,string> Body lines.
 		 */
 		private function field_lines( $fields ) {
@@ -913,7 +871,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Validate and sanitize an address before it may touch a header (NFR-S2).
+		 * Validate and sanitize an address before it may touch a header.
 		 *
 		 * @since 1.4.0
 		 *
@@ -926,10 +884,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Increment and check the best-effort per-client email-send rate limit.
-		 *
-		 * Separate from the form-post limit because the acknowledgement is sent to a
-		 * consumer-supplied address (FR-14).
+		 * Per-client email-send rate limit, separate from the form-post limit because the
+		 * acknowledgement goes to a consumer-supplied address.
 		 *
 		 * @since 1.4.0
 		 *
@@ -940,11 +896,9 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Increment and check the per-recipient acknowledgement throttle (SEC-H1).
-		 *
-		 * Keyed on the consumer address so an attacker cannot turn the form into an
-		 * amplifier that blasts one victim with mail from the merchant's domain. An
-		 * empty address is not throttled (validation guarantees a real one upstream).
+		 * Per-recipient acknowledgement throttle, keyed on the consumer address so the form
+		 * can't be turned into an amplifier blasting one victim from the merchant's domain.
+		 * An empty address is not throttled (validation guarantees a real one upstream).
 		 *
 		 * @since 1.4.0
 		 *
@@ -961,12 +915,9 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Increment and check the site-wide email-send ceiling (SEC-H1).
-		 *
-		 * A single filterable counter that bounds total outbound withdrawal emails per
-		 * window regardless of source IP — the one control that survives IP rotation and
-		 * a distributed flood. Set generously so genuine traffic never approaches it; a
-		 * merchant with high legitimate volume raises it via the max filter.
+		 * Site-wide email-send ceiling: one filterable counter bounding total outbound
+		 * withdrawal emails per window — the control that survives IP rotation and distributed
+		 * floods. Set generously; raise via the max filter for high legitimate volume.
 		 *
 		 * @since 1.4.0
 		 *
@@ -1043,11 +994,8 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Increment and check the per-IP throttle on the uncached nonce endpoint (SEC-H2).
-		 *
-		 * Bounds mass nonce minting. Being throttled is harmless to a genuine consumer:
-		 * an absent nonce is accepted as a soft signal, so a rare throttled page load
-		 * still submits fine.
+		 * Per-IP throttle on the uncached nonce endpoint, bounding mass nonce minting.
+		 * Harmless to a genuine consumer: an absent nonce is accepted, so a throttled load still submits.
 		 *
 		 * @since 1.4.0
 		 *
@@ -1080,7 +1028,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Record a delivery failure so the persistent admin notice can show (FR-20).
+		 * Record a delivery failure so the persistent admin notice can show.
 		 *
 		 * @since 1.4.0
 		 *
@@ -1092,10 +1040,10 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Render the persistent delivery-failure admin notice (FR-20).
+		 * Render the persistent delivery-failure admin notice.
 		 *
-		 * Shown only to users who can act on the site's email configuration and only
-		 * while a failure is on record; it carries no personal data (NFR-S4).
+		 * Shown only to users who can fix the site's email config and only while a failure is
+		 * on record; carries no personal data.
 		 *
 		 * @since 1.4.0
 		 *
@@ -1142,7 +1090,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		}
 
 		/**
-		 * Log a message when debug logging is enabled (FR-20).
+		 * Log a message when debug logging is enabled.
 		 *
 		 * @since 1.4.0
 		 *
@@ -1151,7 +1099,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 */
 		private function log( $message ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'Complianz T&C withdrawal: ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- FR-20 requires logging a delivery failure; guarded by WP_DEBUG_LOG.
+				error_log( 'Complianz T&C withdrawal: ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Delivery-failure logging, guarded by WP_DEBUG_LOG.
 			}
 		}
 	}

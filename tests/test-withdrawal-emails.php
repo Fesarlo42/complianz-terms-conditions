@@ -1,11 +1,10 @@
 <?php
 /**
- * Tests for the withdrawal emails and delivery-failure handling (Task 9):
- * the merchant notification with the consumer as Reply-To (FR-17 / §9.1),
- * the consumer acknowledgement on a durable medium (FR-18 / §9.2), plain-text
- * translatable overridable bodies with sanitized headers (§9 / NFR-S1/S2),
- * the email-send rate limit (FR-14), and the persistent admin notice raised
- * when wp_mail() fails (FR-20). Emails are mocked with MockPHPMailer.
+ * Tests for the withdrawal emails and delivery-failure handling: the merchant
+ * notification with the consumer as Reply-To, the consumer acknowledgement on a
+ * durable medium, plain-text translatable overridable bodies with sanitized
+ * headers, the email-send rate limit, and the persistent admin notice raised when
+ * wp_mail() fails. Emails are mocked with MockPHPMailer.
  *
  * @package Complianz_Terms_Conditions
  */
@@ -108,14 +107,14 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertFalse( has_action( 'cmplz_tc_withdrawal_validated', array( $this->wd, 'dispatch_emails' ) ) );
 	}
 
-	/** init() registers the FR-20 persistent admin notice. */
+	/** init() registers the persistent delivery-failure admin notice. */
 	public function test_init_wires_mail_failure_notice() {
 		$this->wd->init();
 		$this->assertNotFalse( has_action( 'admin_notices', array( $this->wd, 'render_mail_failure_notice' ) ) );
 	}
 
 	// -----------------------------------------------------------------
-	// FR-17 / §9.1 — merchant notification.
+	// Merchant notification.
 	// -----------------------------------------------------------------
 
 	/** A valid submission emails the configured recipient and the consumer. */
@@ -128,7 +127,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertNotNull( $this->sent_to( 'jane@example.com' ), 'Consumer acknowledgement must reach the consumer.' );
 	}
 
-	/** SEC-L1: a malformed configured recipient is validated and falls back to the site admin email. */
+	/** A malformed configured recipient is validated and falls back to the site admin email. */
 	public function test_merchant_recipient_validated_falls_back_to_admin() {
 		$this->set_merchant( array( 'withdrawal_notification_email' => 'definitely not an email' ) );
 		update_option( 'admin_email', 'siteadmin@shop.example' );
@@ -139,7 +138,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertNull( $this->sent_to( 'definitely not an email' ), 'The malformed address must never be used as a recipient.' );
 	}
 
-	/** The recipient resolves never-empty to the contact email (Task 2b), not blank. */
+	/** The recipient resolves never-empty to the contact email, not blank. */
 	public function test_merchant_recipient_never_empty_falls_back_to_contact() {
 		$this->set_merchant(
 			array(
@@ -169,7 +168,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertStringContainsString( '2026', $body, 'The formatted submission timestamp must be included.' );
 	}
 
-	/** Reply-To on the merchant email is the consumer's address (FR-17). */
+	/** Reply-To on the merchant email is the consumer's address. */
 	public function test_merchant_reply_to_is_consumer() {
 		$this->set_merchant();
 		$this->wd->dispatch_emails( $this->payload() );
@@ -179,7 +178,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// NFR-S2 — no consumer value reaches a header unsanitized.
+	// No consumer value reaches a header unsanitized.
 	// -----------------------------------------------------------------
 
 	/** A header-injection payload in the consumer email must not inject headers. */
@@ -195,7 +194,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-18 / §9.2 — consumer acknowledgement on a durable medium.
+	// Consumer acknowledgement on a durable medium.
 	// -----------------------------------------------------------------
 
 	/** The acknowledgement is an automated receipt confirmation and echoes the details. */
@@ -206,7 +205,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertNotNull( $sent );
 		$body = $sent['body'];
 
-		// Confirms receipt (FR-18) while making clear the merchant, not this email, acts next.
+		// Confirms receipt while making clear the merchant, not this email, acts next.
 		$this->assertStringContainsString( 'automated confirmation', $body );
 		$this->assertStringContainsString( 'has been received', $body );
 		$this->assertStringContainsString( 'contact you', $body, 'The ack must set the expectation that the merchant follows up.' );
@@ -214,7 +213,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Blue widget', $body );
 	}
 
-	/** The acknowledgement includes the merchant name, address AND contact (§9.2). */
+	/** The acknowledgement includes the merchant name, address AND contact. */
 	public function test_consumer_ack_includes_merchant_name_address_and_contact() {
 		$this->set_merchant();
 		$this->wd->dispatch_emails( $this->payload() );
@@ -222,14 +221,14 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertNotNull( $sent );
 		$body = $sent['body'];
 
-		$this->assertStringContainsString( 'Acme Webshop BV', $body, 'Merchant name is required (§9.2).' );
-		$this->assertStringContainsString( 'Amsterdam', $body, 'Merchant address is required (§9.2).' );
+		$this->assertStringContainsString( 'Acme Webshop BV', $body, 'Merchant name is required.' );
+		$this->assertStringContainsString( 'Amsterdam', $body, 'Merchant address is required.' );
 		$this->assertStringContainsString( 'merchant@shop.example', $body, 'Contact shown is the withdrawal address, not the P&T email (#2).' );
 		$this->assertStringNotContainsString( 'contact@shop.example', $body, 'The general P&T email must not be used as the withdrawal contact (#2).' );
 	}
 
 	// -----------------------------------------------------------------
-	// §9.2 merchant contact block variant (on cmplz_tc_document).
+	// Merchant contact block variant (on cmplz_tc_document).
 	// -----------------------------------------------------------------
 
 	/** The contact block uses the withdrawal email (not the P&T email) for the email contact (#2). */
@@ -264,7 +263,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// §9 — both emails are plain-text, translatable and overridable.
+	// Both emails are plain-text, translatable and overridable.
 	// -----------------------------------------------------------------
 
 	/** Both emails are sent as plain text by default. */
@@ -302,7 +301,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-14 — rate-limit the SEND, not just the form post.
+	// Rate-limit the SEND, not just the form post.
 	// -----------------------------------------------------------------
 
 	/** Once the send limit is hit, further dispatches send nothing (ack goes to a supplied address). */
@@ -360,7 +359,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// SEC-H1 — de-amplification: per-recipient + global send throttles.
+	// De-amplification: per-recipient + global send throttles.
 	// -----------------------------------------------------------------
 
 	/** A single consumer address cannot receive more acks than the per-recipient cap. */
@@ -427,7 +426,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	// #4 — own-link path sends no email.
 	// -----------------------------------------------------------------
 
-	/** On the own-link path the plugin sends no email (spec §7 / scenario 4). */
+	/** On the own-link path the plugin sends no email. */
 	public function test_own_link_path_sends_no_email() {
 		update_option(
 			$this->options_key,
@@ -441,7 +440,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-20 — delivery failure → log + persistent, PII-free admin notice.
+	// Delivery failure → log + persistent, PII-free admin notice.
 	// -----------------------------------------------------------------
 
 	/** A wp_mail() failure records the persistent admin-notice flag. */
@@ -469,7 +468,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'notice', $html, 'A recorded failure must render an admin notice.' );
-		$this->assertStringNotContainsString( 'jane@example.com', $html, 'The notice must not leak the consumer email (NFR-S4).' );
+		$this->assertStringNotContainsString( 'jane@example.com', $html, 'The notice must not leak the consumer email.' );
 		$this->assertStringNotContainsString( 'Jane Consumer', $html, 'The notice must not leak consumer data.' );
 	}
 

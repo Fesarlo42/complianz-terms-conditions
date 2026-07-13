@@ -1,7 +1,6 @@
 <?php
 /**
- * Tests for the generated withdrawal T&C clauses + [withdrawal_form_link] repoint
- * (FR-8, FR-21, FR-22).
+ * Tests for the generated withdrawal T&C clauses + [withdrawal_form_link] repoint.
  *
  * The provided-form clause must show on the Complianz-form path, the own-link clause
  * only on the own-link path, and the durable-medium acknowledgement clause on BOTH
@@ -69,7 +68,7 @@ class Test_Withdrawal_Clauses extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-21 — the generated text reflects the selected path.
+	// The generated text reflects the selected path.
 	// ---------------------------------------------------------------------
 
 	/** The provided-form clause must be enabled on the Complianz-form path. */
@@ -102,12 +101,12 @@ class Test_Withdrawal_Clauses extends WP_UnitTestCase {
 				'if_returns_custom' => 'yes',
 			),
 			$clause['condition'],
-			'The own-link clause must be scoped to the own-link path (FR-21).'
+			'The own-link clause must be scoped to the own-link path.'
 		);
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-22 — acknowledgement clause stays on BOTH paths (landmine).
+	// Acknowledgement clause stays on BOTH paths (landmine).
 	// ---------------------------------------------------------------------
 
 	/** The durable-medium acknowledgement clause must NOT be gated to a path. */
@@ -117,7 +116,7 @@ class Test_Withdrawal_Clauses extends WP_UnitTestCase {
 		$this->assertSame(
 			array( 'if_returns' => 'yes' ),
 			$clause['condition'],
-			'FR-22: the acknowledgement clause must stay on both paths; do not gate it to the form path.'
+			'The acknowledgement clause must stay on both paths; do not gate it to the form path.'
 		);
 	}
 
@@ -132,7 +131,7 @@ class Test_Withdrawal_Clauses extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-8 — the clause links to the Withdrawal page; no leftover token.
+	// The clause links to the Withdrawal page; no leftover token.
 	// ---------------------------------------------------------------------
 
 	/** On the form path the clause links to the Withdrawal page, not the legacy PDF. */
@@ -141,8 +140,8 @@ class Test_Withdrawal_Clauses extends WP_UnitTestCase {
 		$page_id = $this->doc()->create_page( 'withdrawal' );
 		$html    = $this->doc()->get_document_html( 'terms-conditions' );
 
-		$this->assertStringNotContainsString( '[withdrawal_form_link]', $html, 'FR-21: no placeholder token may appear in the output.' );
-		$this->assertStringContainsString( get_permalink( $page_id ), $html, 'FR-8: the withdrawal clause must link to the Withdrawal page.' );
+		$this->assertStringNotContainsString( '[withdrawal_form_link]', $html, 'No placeholder token may appear in the output.' );
+		$this->assertStringContainsString( get_permalink( $page_id ), $html, 'The withdrawal clause must link to the Withdrawal page.' );
 		$this->assertStringNotContainsString( 'withdrawal-forms/withdrawal-form-', $html, 'The legacy withdrawal PDF link must be gone.' );
 	}
 
@@ -153,7 +152,7 @@ class Test_Withdrawal_Clauses extends WP_UnitTestCase {
 
 		$html = $this->doc()->get_document_html( 'terms-conditions' );
 
-		$this->assertStringNotContainsString( '[withdrawal_form_link]', $html, 'FR-8/FR-21: the token must not leak when the page is missing.' );
+		$this->assertStringNotContainsString( '[withdrawal_form_link]', $html, 'The token must not leak when the page is missing.' );
 		$this->assertStringNotContainsString( 'href="">withdrawal function available', $html, 'The degraded withdrawal link must not be empty.' );
 	}
 }

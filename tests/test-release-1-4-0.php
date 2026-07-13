@@ -1,6 +1,6 @@
 <?php
 /**
- * Release tests for 1.4.0 (Task 11: i18n, readme & end-to-end verification).
+ * Release tests for 1.4.0: i18n, readme & end-to-end verification.
  *
  * Guards the release-mechanics that are easy to forget and hard to catch by eye:
  * the version constant and plugin header agree on 1.4.0, readme.txt's Stable tag
@@ -135,13 +135,13 @@ class Test_Release_1_4_0 extends WP_UnitTestCase {
 		$pot = $this->normalized_pot();
 
 		$expected = array(
-			// Generator wording (Task 2b).
+			// Generator wording.
 			'Use the Complianz withdrawal form',
 			'Link to my own withdrawal function',
-			// Submission validation + confirmation (Task 7).
+			// Submission validation + confirmation.
 			'Please enter a valid email address.',
 			'Withdrawal request sent',
-			// Consumer acknowledgement + delivery-failure UX (Task 9).
+			// Consumer acknowledgement + delivery-failure UX.
 			'This is an automated confirmation that your withdrawal request has been received and sent to the merchant.',
 			'This is a copy of the withdrawal request you submitted. We could not deliver it to the merchant automatically, so please contact them directly to complete your withdrawal.',
 			'We could not confirm your withdrawal request was delivered',
@@ -157,22 +157,22 @@ class Test_Release_1_4_0 extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// End-to-end upgrade: 1.3.1 -> 1.4.0 (spec §13 scenarios 5 & 9).
+	// End-to-end upgrade: 1.3.1 -> 1.4.0.
 	// ---------------------------------------------------------------------
 
 	/**
 	 * Upgrading a fast-fix install from 1.3.1 must, in one check_upgrade():
-	 *  - purge the legacy PDF queue option + withdrawal-forms dir (Task 10, §13.5),
-	 *  - pin a saved own-link install to the own-link path (Task 2, §13.9),
+	 *  - purge the legacy PDF queue option + withdrawal-forms dir,
+	 *  - pin a saved own-link install to the own-link path,
 	 *  - advance the stored version to 1.4.0 so the < 1.4.0 blocks stop re-firing.
 	 */
 	public function test_upgrade_from_1_3_1_runs_both_migrations_and_advances_version() {
-		// Legacy PDF-cleanup fixtures (§13 scenario 5).
+		// Legacy PDF-cleanup fixtures.
 		update_option( 'cmplz_generate_pdf_languages', array( 'en_US' => 1 ) );
 		wp_mkdir_p( $this->withdrawal_dir );
 		file_put_contents( $this->withdrawal_dir . '/withdrawal-form-en_US.pdf', '%PDF-1.4 test' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Seeding a stale PDF fixture in a test.
 
-		// Own-link fast-fix install (§13 scenario 9): saved URL, no explicit choice.
+		// Own-link fast-fix install: saved URL, no explicit choice.
 		update_option(
 			$this->options_key,
 			array(
@@ -185,7 +185,7 @@ class Test_Release_1_4_0 extends WP_UnitTestCase {
 
 		$this->get_admin()->check_upgrade();
 
-		// Task 10 cleanup fired.
+		// Legacy PDF cleanup fired.
 		$this->assertFalse(
 			get_option( 'cmplz_generate_pdf_languages' ),
 			'Upgrade must delete the legacy cmplz_generate_pdf_languages option.'
@@ -195,7 +195,7 @@ class Test_Release_1_4_0 extends WP_UnitTestCase {
 			'Upgrade must purge the stale withdrawal-forms directory.'
 		);
 
-		// Task 2 own-link pin fired.
+		// Own-link pin fired.
 		$options = get_option( $this->options_key );
 		$this->assertSame(
 			'yes',

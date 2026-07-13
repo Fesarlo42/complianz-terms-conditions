@@ -31,8 +31,8 @@
 	min-height: 6rem;
 }
 
-/* Visible keyboard focus for full keyboard operability (NFR-A2); includes the
-   error-summary links, which move focus into the form (ACC-m1). */
+/* Visible keyboard focus for full keyboard operability; includes the
+   error-summary links, which move focus into the form. */
 .cmplz-tc-withdrawal-form input:focus-visible,
 .cmplz-tc-withdrawal-form textarea:focus-visible,
 .cmplz-tc-withdrawal-form button:focus-visible,
@@ -74,17 +74,16 @@
 	margin-bottom: 1.5rem;
 }
 
-/* Left to inherit theme/browser button styling (ACC-M2, accepted): the native
-   default is legible and imposing brand colours would fight the host theme;
-   custom-theme button contrast is covered by theme QA. Focus ring is guaranteed
-   by the :focus-visible rule above. */
+/* Left to inherit theme/browser button styling: the native default is legible and
+   imposing brand colours would fight the host theme. Focus ring is guaranteed by the
+   :focus-visible rule above. */
 .cmplz-tc-wf-submit {
 	padding: 0.6rem 1.2rem;
 	font: inherit;
 	cursor: pointer;
 }
 
-/* On-screen confirmation shown after a successful submission (FR-19). */
+/* On-screen confirmation shown after a successful submission. */
 .cmplz-tc-wf-confirmation {
 	max-width: 40rem;
 	padding: 1rem 1.25rem;
@@ -99,7 +98,7 @@
 }
 
 /* On-screen delivery-failure / retry message — same shape as the confirmation, in
-   an error tone (ACC-m3). #7f1d1d on #fef2f2 is 9.16:1 (AA). */
+   an error tone. #7f1d1d on #fef2f2 is 9.16:1 (AA). */
 .cmplz-tc-wf-error {
 	max-width: 40rem;
 	padding: 1rem 1.25rem;
@@ -113,10 +112,9 @@
 	margin-top: 0;
 }
 
-/* The result containers receive programmatic focus after the PRG (ACC-S1). Use
-   :focus, not :focus-visible — a scripted focus() on a tabindex=-1 container does
-   not reliably trigger :focus-visible, so this keeps the move visible even when a
-   theme resets outlines (ACC-M1). */
+/* The result containers receive programmatic focus after the PRG. Use :focus, not
+   :focus-visible — a scripted focus() on a tabindex=-1 container does not reliably
+   trigger :focus-visible, so this keeps the move visible even when a theme resets outlines. */
 .cmplz-tc-wf-confirmation:focus,
 .cmplz-tc-wf-error:focus {
 	outline: 3px solid #2563eb;

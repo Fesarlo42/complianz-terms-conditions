@@ -1,9 +1,9 @@
 <?php
 /**
- * Tests for the withdrawal generator-mechanism choice + upgrade migration (FR-1–FR-5):
- * the restored if_returns_custom question, the mutual-exclusivity gating of the own-link
- * URL and notification-email fields, and the migration that keeps fast-fix installs with
- * a saved own-link URL on the own-link path.
+ * Tests for the withdrawal generator-mechanism choice + upgrade migration: the restored
+ * if_returns_custom question, the mutual-exclusivity gating of the own-link URL and
+ * notification-email fields, and the migration that keeps fast-fix installs with a saved
+ * own-link URL on the own-link path.
  *
  * @package Complianz_Terms_Conditions
  */
@@ -70,7 +70,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-1 — the restored generator choice.
+	// The restored generator choice.
 	// ---------------------------------------------------------------------
 
 	/** The if_returns_custom question must be registered (no longer commented out). */
@@ -95,7 +95,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 		);
 	}
 
-	/** FR-1: the label must be reworded away from the legacy PDF-era phrasing. */
+	/** The label must be reworded away from the legacy PDF-era phrasing. */
 	public function test_if_returns_custom_label_is_reworded() {
 		$field = $this->get_field( 'if_returns_custom' );
 		$this->assertStringNotContainsStringIgnoringCase(
@@ -106,12 +106,12 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 		$this->assertStringContainsStringIgnoringCase(
 			'withdrawal function',
 			$field['label'],
-			'The restored label must be framed around the withdrawal-function choice (FR-1).'
+			'The restored label must be framed around the withdrawal-function choice.'
 		);
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-2 — compliant default (Complianz form) for fresh configurations.
+	// Compliant default (Complianz form) for fresh configurations.
 	// ---------------------------------------------------------------------
 
 	/** A fresh configuration must default to the Complianz-provided form. */
@@ -135,10 +135,10 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-3 / FR-4 / FR-5 — path-exclusive dependent fields.
+	// Path-exclusive dependent fields.
 	// ---------------------------------------------------------------------
 
-	/** FR-3/FR-5: the own-link URL is required only on the own-link path. */
+	/** The own-link URL is required only on the own-link path. */
 	public function test_own_link_field_is_gated_to_own_link_path() {
 		$field = $this->get_field( 'if_returns_custom_link' );
 		$this->assertIsArray( $field );
@@ -153,7 +153,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 		$this->assertTrue( (bool) $field['required'], 'The own-link URL must stay required when shown.' );
 	}
 
-	/** FR-4/FR-5: the notification email is captured only on the Complianz-form path. */
+	/** The notification email is captured only on the Complianz-form path. */
 	public function test_notification_email_field_is_gated_to_form_path() {
 		$field = $this->get_field( 'withdrawal_notification_email' );
 		$this->assertIsArray( $field, 'withdrawal_notification_email must be registered.' );
@@ -169,7 +169,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 		);
 	}
 
-	/** FR-4: with nothing stored, the recipient resolves to the admin address via the read-time filter (empty config seed). */
+	/** With nothing stored, the recipient resolves to the admin address via the read-time filter (empty config seed). */
 	public function test_notification_email_defaults_to_admin_email() {
 		$field = $this->get_field( 'withdrawal_notification_email' );
 		$this->assertSame( '', $field['default'], 'The config seed is empty; resolution is deferred to the read-time filter.' );
@@ -183,7 +183,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-2 — upgrade migration (fast fix -> restored choice).
+	// Upgrade migration (fast fix -> restored choice).
 	// ---------------------------------------------------------------------
 
 	/** A fast-fix install with a saved own-link URL must stay on the own-link path. */
@@ -264,7 +264,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// Task 2b — reworded mechanism options (Complianz form listed first).
+	// Reworded mechanism options (Complianz form listed first).
 	// ---------------------------------------------------------------------
 
 	/** The mechanism must use bespoke labels (not the generic Yes/No pair). */
@@ -290,7 +290,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// Task 2b — no-storage / SMTP note on the recipient field (form path).
+	// No-storage / SMTP note on the recipient field (form path).
 	// ---------------------------------------------------------------------
 
 	/** The recipient field's help note must cover the no-storage fact and the SMTP requirement. */
@@ -302,7 +302,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// Task 2b — notification-email default prefers the general contact email.
+	// Notification-email default prefers the general contact email.
 	// ---------------------------------------------------------------------
 
 	/** The default-recipient helper prefers the general contact email when set. */
@@ -326,7 +326,7 @@ class Test_Withdrawal_Generator_Choice extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// Task 2b — recipient is never empty (read-time resolution, both paths).
+	// Recipient is never empty (read-time resolution, both paths).
 	// ---------------------------------------------------------------------
 
 	/** A stored-empty recipient resolves to the general contact email on read. */

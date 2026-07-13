@@ -1,15 +1,13 @@
 <?php
 /**
- * Tests for the interactive withdrawal-form template + its front-end asset enqueue
- * (FR-10, FR-11, FR-12, NFR-A1, NFR-A2, NFR-I1).
+ * Tests for the interactive withdrawal-form template + its front-end asset enqueue.
  *
- * The template must render the EU §8 fields (name/email/goods required; address,
- * order reference, order date and message optional), the pre-filled non-editable
- * merchant heading, and the three hidden integrity placeholders (nonce, honeypot,
- * render timestamp) consumed later by Task 7. Labels must be programmatically
- * associated, the required state and validation errors announced, all strings
- * translatable, and the theme-override path preserved. The form's CSS/JS must
- * enqueue on the Withdrawal page only.
+ * The template must render the EU model-form fields (name/email/goods required; address,
+ * order reference, order date and message optional), the pre-filled non-editable merchant
+ * heading, and the three hidden integrity placeholders (nonce, honeypot, render timestamp).
+ * Labels must be programmatically associated, the required state and validation errors
+ * announced, all strings translatable, and the theme-override path preserved. The form's
+ * CSS/JS must enqueue on the Withdrawal page only.
  *
  * @package Complianz_Terms_Conditions
  */
@@ -44,7 +42,7 @@ class Test_Withdrawal_Form_Template extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-10 — the §8 fields render, with the correct required/optional split.
+	// The fields render, with the correct required/optional split.
 	// ---------------------------------------------------------------------
 
 	/** The template must resolve through the (overridable) loader, not be missing. */
@@ -84,7 +82,7 @@ class Test_Withdrawal_Form_Template extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/<input[^>]*type=["\']date["\']/i', $html, 'The order date must use type=date.' );
 	}
 
-	/** Every visible control must have a programmatically associated label (NFR-A1). */
+	/** Every visible control must have a programmatically associated label. */
 	public function test_every_field_has_an_associated_label() {
 		$html = $this->render();
 		// Collect all input/textarea ids, then assert a <label for="id"> exists for each.
@@ -107,7 +105,7 @@ class Test_Withdrawal_Form_Template extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// Hidden integrity placeholders (rendered here, consumed by Task 7).
+	// Hidden integrity placeholders (rendered here, consumed by the submission handler).
 	// ---------------------------------------------------------------------
 
 	/** The nonce, honeypot and render-timestamp placeholders must be rendered. */
@@ -132,7 +130,7 @@ class Test_Withdrawal_Form_Template extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// FR-10 — merchant identity is a pre-filled, NON-editable heading.
+	// Merchant identity is a pre-filled, NON-editable heading.
 	// ---------------------------------------------------------------------
 
 	public function test_merchant_identity_renders_as_non_editable_heading() {
@@ -148,7 +146,7 @@ class Test_Withdrawal_Form_Template extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// NFR-A1 — errors are programmatically associated and announced; values kept.
+	// Errors are programmatically associated and announced; values kept.
 	// ---------------------------------------------------------------------
 
 	public function test_errors_are_announced_and_values_preserved() {
@@ -194,7 +192,7 @@ class Test_Withdrawal_Form_Template extends WP_UnitTestCase {
 	}
 
 	// ---------------------------------------------------------------------
-	// NFR-I1 — all strings are translatable in the plugin text domain.
+	// All strings are translatable in the plugin text domain.
 	// ---------------------------------------------------------------------
 
 	public function test_strings_are_translatable() {
@@ -256,7 +254,7 @@ class Test_Withdrawal_Form_Template extends WP_UnitTestCase {
 		$this->assertFalse( wp_script_is( 'cmplz-tc-withdrawal-form', 'enqueued' ), 'The form script must not load off the Withdrawal page.' );
 	}
 
-	/** A page that embeds the shortcode enqueues the assets early (before wp_head), not only at render (WP-2). */
+	/** A page that embeds the shortcode enqueues the assets early (before wp_head), not only at render. */
 	public function test_form_assets_enqueue_on_a_page_embedding_the_form() {
 		$embed = self::factory()->post->create(
 			array(

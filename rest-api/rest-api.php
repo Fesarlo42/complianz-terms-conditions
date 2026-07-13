@@ -54,7 +54,7 @@ function cmplz_tc_documents_rest_route() {
 		array(
 			'methods'             => 'GET',
 			'callback'            => 'cmplz_tc_rest_api_withdrawal_nonce',
-			// The endpoint issues a public anti-abuse nonce; it performs no privileged action (NFR-S3).
+			// The endpoint issues a public anti-abuse nonce; it performs no privileged action.
 			'permission_callback' => '__return_true',
 		)
 	);
@@ -63,13 +63,11 @@ function cmplz_tc_documents_rest_route() {
 /**
  * Return a fresh withdrawal-form nonce and render timestamp, uncached.
  *
- * The withdrawal form page stays fully cacheable; its nonce and render
- * timestamp are fetched from this small uncached endpoint at page load so
- * full-page caching can never serve a stale nonce and reject a legitimate
- * submission (FR-13 / NFR-P1). The no-store header prevents any intermediary
- * from caching the response. A light per-IP throttle bounds mass nonce minting
- * (SEC-H2); a throttled visitor still submits fine because an absent nonce is
- * accepted as a soft signal downstream.
+ * The withdrawal form page stays fully cacheable; its nonce and render timestamp are
+ * fetched from this small uncached endpoint at page load so full-page caching can never
+ * serve a stale nonce and reject a legitimate submission. The no-store header prevents any
+ * intermediary from caching the response. A light per-IP throttle bounds mass nonce minting;
+ * a throttled visitor still submits fine because an absent nonce is accepted downstream.
  *
  * @since  1.4.0
  * @access public

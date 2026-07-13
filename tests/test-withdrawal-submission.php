@@ -1,9 +1,8 @@
 <?php
 /**
- * Tests for the withdrawal submission handler (Task 7): cache-safe nonce
- * (FR-13/NFR-P1), anti-abuse (FR-14), server-side validation (FR-15),
- * Post/Redirect/Get with no PII in the URL (FR-16), and the on-screen
- * confirmation (FR-19). No email is sent here — that is Task 9's seam.
+ * Tests for the withdrawal submission handler: cache-safe nonce, anti-abuse,
+ * server-side validation, Post/Redirect/Get with no PII in the URL, and the
+ * on-screen confirmation. No email is sent here — that is the dispatch seam.
  *
  * @package Complianz_Terms_Conditions
  */
@@ -57,7 +56,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-15 — server-side validation & sanitization.
+	// Server-side validation & sanitization.
 	// -----------------------------------------------------------------
 
 	/** A complete, valid submission succeeds. */
@@ -108,7 +107,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertSame( 'success', $result['status'] );
 	}
 
-	/** All consumer input is sanitized server-side (NFR-S1). */
+	/** All consumer input is sanitized server-side. */
 	public function test_input_is_sanitized() {
 		$captured = array();
 		add_action(
@@ -130,14 +129,14 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// Task 9 seam — a valid submission fires the email-dispatch action.
+	// Dispatch seam — a valid submission fires the email-dispatch action.
 	// -----------------------------------------------------------------
 
 	/**
 	 * A valid submission fires the seam exactly once.
 	 *
-	 * The handler sends no email inline — dispatch is attached to this action by
-	 * Task 9 (covered in Test_Withdrawal_Emails), keeping the concerns decoupled.
+	 * The handler sends no email inline — dispatch is driven from this action
+	 * (covered in Test_Withdrawal_Emails), keeping the concerns decoupled.
 	 */
 	public function test_valid_submission_fires_seam() {
 		$fired = 0;
@@ -152,7 +151,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-14 — anti-abuse.
+	// Anti-abuse.
 	// -----------------------------------------------------------------
 
 	/** A filled honeypot is a silent spam reject: no email, no preserved state. */
@@ -172,7 +171,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The render timestamp is now mandatory (SEC-H1): an absent one soft-fails.
+	 * The render timestamp is now mandatory: an absent one soft-fails.
 	 *
 	 * The template renders the timestamp server-side, so every genuine consumer
 	 * (JS or no-JS) submits with it; a bare scripted POST that omits it is bounced
@@ -186,14 +185,14 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertSame( 'Jane Consumer', $result['values']['cmplz_tc_wf_name'], 'Values are preserved on the soft-fail.' );
 	}
 
-	/** A non-numeric render timestamp is treated as absent (SEC-H1). */
+	/** A non-numeric render timestamp is treated as absent. */
 	public function test_non_numeric_render_timestamp_is_soft_fail() {
 		$result = $this->wd->process( $this->valid_input( array( 'cmplz_tc_wf_rendered' => 'not-a-number' ) ) );
 		$this->assertSame( 'too_fast', $result['status'] );
 	}
 
 	// -----------------------------------------------------------------
-	// SEC-M2 — field-length caps on attacker-controlled content.
+	// Field-length caps on attacker-controlled content.
 	// -----------------------------------------------------------------
 
 	/** An over-long field value is rejected as invalid with a field error. */
@@ -218,7 +217,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// SEC-H1 (Tier 3) — opt-in spam-check hook (off by default).
+	// Opt-in spam-check hook (off by default).
 	// -----------------------------------------------------------------
 
 	/** A truthy cmplz_tc_withdrawal_spam_check silently drops the submission. */
@@ -232,7 +231,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// SEC-H1 / Refinement 2 — a suppressed send is never reported as success.
+	// A suppressed send is never reported as success.
 	// -----------------------------------------------------------------
 
 	/** When a send throttle trips, process() reports try_again_later and sends nothing. */
@@ -252,7 +251,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 
 		$out = COMPLIANZ_TC::$document->render_withdrawal_form();
 		$this->assertStringContainsString( 'try again', $out, 'The consumer is asked to retry later.' );
-		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The try-again message must be focusable so it is announced (ACC-S1).' );
+		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The try-again message must be focusable so it is announced.' );
 		$this->assertStringNotContainsString( 'cmplz-tc-wf-confirmation', $out, 'A throttled send must not show the success screen.' );
 		$this->assertStringNotContainsString( 'contact the merchant', $out, 'A transient throttle must not tell the consumer to contact the merchant.' );
 		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render on the try-again screen.' );
@@ -267,7 +266,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-13 — nonce is a soft signal, never a permanent block.
+	// Nonce is a soft signal, never a permanent block.
 	// -----------------------------------------------------------------
 
 	/** A present-but-invalid nonce soft-fails and preserves values (never rejects hard). */
@@ -277,7 +276,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertSame( 'Jane Consumer', $result['values']['cmplz_tc_wf_name'] );
 	}
 
-	/** An absent nonce (no-JS consumer) must not block a genuine submission (NFR-S3). */
+	/** An absent nonce (no-JS consumer) must not block a genuine submission. */
 	public function test_absent_nonce_does_not_block() {
 		$input = $this->valid_input();
 		unset( $input['cmplz_tc_wf_nonce'] );
@@ -308,7 +307,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-16 / NFR-S4 — PRG with no personal data in the URL.
+	// PRG with no personal data in the URL.
 	// -----------------------------------------------------------------
 
 	/** The redirect carries only a token; personal data lives in the transient, not the URL. */
@@ -323,7 +322,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertSame( 'jane@example.com', $state['values']['cmplz_tc_wf_email'] );
 	}
 
-	/** SEC-L3: the PRG state (which briefly holds sanitized PII on the failure path) expires quickly. */
+	/** The PRG state (which briefly holds sanitized PII on the failure path) expires quickly. */
 	public function test_prg_state_ttl_is_short() {
 		$result  = $this->wd->process( $this->valid_input( array( 'cmplz_tc_wf_name' => '' ) ) );
 		$timeout = (int) get_option( '_transient_timeout_' . cmplz_tc_withdrawal::STATE_PREFIX . $result['token'] );
@@ -339,7 +338,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-13 / NFR-P1 — uncached nonce endpoint.
+	// Uncached nonce endpoint.
 	// -----------------------------------------------------------------
 
 	/** The nonce endpoint returns a verifiable nonce and a render timestamp. */
@@ -352,7 +351,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertIsInt( $data['rendered'] );
 	}
 
-	/** The nonce endpoint must be uncacheable (NFR-P1). */
+	/** The nonce endpoint must be uncacheable. */
 	public function test_nonce_endpoint_is_uncacheable() {
 		$request  = new WP_REST_Request( 'GET', '/complianz_tc/v1/withdrawal-nonce' );
 		$response = rest_get_server()->dispatch( $request );
@@ -362,7 +361,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The nonce endpoint is per-IP throttled to bound mass minting (SEC-H2).
+	 * The nonce endpoint is per-IP throttled to bound mass minting.
 	 *
 	 * Being throttled is harmless to a genuine consumer: an absent nonce is
 	 * accepted (soft signal), so a rare throttled page load still submits fine.
@@ -378,7 +377,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// FR-16 / FR-19 — render_withdrawal_form consumes the PRG state.
+	// render_withdrawal_form consumes the PRG state.
 	// -----------------------------------------------------------------
 
 	/** After an invalid PRG, the re-rendered form shows the error and the preserved value. */
@@ -392,7 +391,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<form', $out );
 	}
 
-	/** A success PRG shows an on-screen confirmation instead of the form (FR-19). */
+	/** A success PRG shows an on-screen confirmation instead of the form. */
 	public function test_render_shows_confirmation_on_success() {
 		$result = $this->wd->process( $this->valid_input() );
 		$this->assertSame( 'success', $result['status'] );
@@ -400,7 +399,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 
 		$out = COMPLIANZ_TC::$document->render_withdrawal_form();
 		$this->assertStringContainsString( 'cmplz-tc-wf-confirmation', $out );
-		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The confirmation must be focusable so it is announced (ACC-S1).' );
+		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The confirmation must be focusable so it is announced.' );
 		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render after success.' );
 	}
 
@@ -424,7 +423,7 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// #5 — delivery-failure surfaces to the consumer (FR-19/FR-20 refinement).
+	// Delivery-failure surfaces to the consumer.
 	// -----------------------------------------------------------------
 
 	/** A delivery failure yields a delivery_error status rather than success. */
@@ -452,13 +451,13 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$out                 = COMPLIANZ_TC::$document->render_withdrawal_form();
 		$this->assertStringContainsString( 'contact the merchant', $out, 'The consumer must be told to contact the merchant.' );
 		$this->assertStringContainsString( 'merchant@shop.example', $out, 'The merchant contact must be shown.' );
-		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The delivery error must be focusable so it is announced (ACC-S1).' );
+		$this->assertStringContainsString( 'tabindex="-1"', $out, 'The delivery error must be focusable so it is announced.' );
 		$this->assertStringNotContainsString( 'cmplz-tc-wf-confirmation', $out, 'The success confirmation must not show on failure.' );
 		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render after a delivery failure.' );
 	}
 
 	// -----------------------------------------------------------------
-	// FR-13 / NFR-P1 — the JS is told where the uncached nonce lives.
+	// The JS is told where the uncached nonce lives.
 	// -----------------------------------------------------------------
 
 	/** Enqueuing the form assets localizes the uncached nonce endpoint URL. */
