@@ -1428,11 +1428,30 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 				add_action( 'wp_head', array( COMPLIANZ::$document, 'inline_styles' ), 100 );
 			}
 
-			// The withdrawal form's own assets load on the Withdrawal page regardless
-			// of whether the Complianz GDPR plugin is active.
-			if ( $this->is_withdrawal_page() ) {
+			// The withdrawal form's own assets load on the Withdrawal page and on any page
+			// that embeds the block/shortcode, regardless of whether the Complianz GDPR plugin
+			// is active. Detecting the embed here (before wp_head) avoids the FOUC that a
+			// render-time enqueue would cause; render_withdrawal_form() still enqueues as a
+			// fallback for embeds this cannot see (template parts, widgets).
+			if ( $this->is_withdrawal_page() || $this->page_embeds_withdrawal_form() ) {
 				$this->enqueue_withdrawal_assets();
 			}
+		}
+
+		/**
+		 * Whether the queried post embeds the withdrawal form via block or shortcode.
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 *
+		 * @return bool True when the current post contains the block or shortcode.
+		 */
+		private function page_embeds_withdrawal_form() {
+			$post = get_post();
+			return $post instanceof WP_Post && (
+				has_block( 'complianztc/withdrawal-form', $post )
+				|| has_shortcode( (string) $post->post_content, 'cmplz-tc-withdrawal-form' )
+			);
 		}
 
 		/**

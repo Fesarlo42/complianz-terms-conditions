@@ -255,4 +255,21 @@ class Test_Withdrawal_Form_Template extends WP_UnitTestCase {
 		$this->assertFalse( wp_style_is( 'cmplz-tc-withdrawal-form', 'enqueued' ), 'The form stylesheet must not load off the Withdrawal page.' );
 		$this->assertFalse( wp_script_is( 'cmplz-tc-withdrawal-form', 'enqueued' ), 'The form script must not load off the Withdrawal page.' );
 	}
+
+	/** A page that embeds the shortcode enqueues the assets early (before wp_head), not only at render (WP-2). */
+	public function test_form_assets_enqueue_on_a_page_embedding_the_form() {
+		$embed = self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_content' => '[cmplz-tc-withdrawal-form]',
+			)
+		);
+		$this->go_to( get_permalink( $embed ) );
+
+		$this->doc()->enqueue_assets();
+
+		$this->assertTrue( wp_style_is( 'cmplz-tc-withdrawal-form', 'enqueued' ), 'The form stylesheet must enqueue on a page that embeds the form.' );
+		$this->assertTrue( wp_script_is( 'cmplz-tc-withdrawal-form', 'enqueued' ), 'The form script must enqueue on a page that embeds the form.' );
+	}
 }
