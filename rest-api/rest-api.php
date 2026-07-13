@@ -67,14 +67,23 @@ function cmplz_tc_documents_rest_route() {
  * timestamp are fetched from this small uncached endpoint at page load so
  * full-page caching can never serve a stale nonce and reject a legitimate
  * submission (FR-13 / NFR-P1). The no-store header prevents any intermediary
- * from caching the response.
+ * from caching the response. A light per-IP throttle bounds mass nonce minting
+ * (SEC-H2); a throttled visitor still submits fine because an absent nonce is
+ * accepted as a soft signal downstream.
  *
  * @since  1.4.0
  * @access public
  *
- * @return WP_REST_Response The nonce and current server timestamp.
+ * @return WP_REST_Response The nonce and current server timestamp, or a 429 when throttled.
  */
 function cmplz_tc_rest_api_withdrawal_nonce() {
+	$withdrawal = new cmplz_tc_withdrawal();
+	if ( ! $withdrawal->within_nonce_endpoint_rate_limit() ) {
+		$response = new WP_REST_Response( array( 'error' => 'rate_limited' ), 429 );
+		$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
+		return $response;
+	}
+
 	$response = new WP_REST_Response(
 		array(
 			'nonce'    => cmplz_tc_withdrawal::create_nonce(),

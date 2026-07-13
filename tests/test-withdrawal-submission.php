@@ -150,12 +150,90 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertSame( 'Jane Consumer', $result['values']['cmplz_tc_wf_name'] );
 	}
 
-	/** No render timestamp (no-JS consumer) skips the min-time check rather than blocking. */
-	public function test_missing_render_timestamp_skips_min_time() {
+	/**
+	 * The render timestamp is now mandatory (SEC-H1): an absent one soft-fails.
+	 *
+	 * The template renders the timestamp server-side, so every genuine consumer
+	 * (JS or no-JS) submits with it; a bare scripted POST that omits it is bounced
+	 * to a soft re-render rather than sailing through the anti-abuse layer.
+	 */
+	public function test_missing_render_timestamp_is_soft_fail() {
 		$input = $this->valid_input();
 		unset( $input['cmplz_tc_wf_rendered'] );
 		$result = $this->wd->process( $input );
-		$this->assertSame( 'success', $result['status'] );
+		$this->assertSame( 'too_fast', $result['status'] );
+		$this->assertSame( 'Jane Consumer', $result['values']['cmplz_tc_wf_name'], 'Values are preserved on the soft-fail.' );
+	}
+
+	/** A non-numeric render timestamp is treated as absent (SEC-H1). */
+	public function test_non_numeric_render_timestamp_is_soft_fail() {
+		$result = $this->wd->process( $this->valid_input( array( 'cmplz_tc_wf_rendered' => 'not-a-number' ) ) );
+		$this->assertSame( 'too_fast', $result['status'] );
+	}
+
+	// -----------------------------------------------------------------
+	// SEC-M2 — field-length caps on attacker-controlled content.
+	// -----------------------------------------------------------------
+
+	/** An over-long field value is rejected as invalid with a field error. */
+	public function test_overlong_field_is_invalid() {
+		$result = $this->wd->process( $this->valid_input( array( 'cmplz_tc_wf_goods' => str_repeat( 'a', 6000 ) ) ) );
+		$this->assertSame( 'invalid', $result['status'] );
+		$this->assertArrayHasKey( 'cmplz_tc_wf_goods', $result['errors'] );
+	}
+
+	/** The length caps are filterable so a site can loosen or tighten them. */
+	public function test_field_length_caps_are_filterable() {
+		add_filter(
+			'cmplz_tc_withdrawal_field_max_lengths',
+			static function ( $caps ) {
+				$caps['cmplz_tc_wf_goods'] = 10;
+				return $caps;
+			}
+		);
+		$result = $this->wd->process( $this->valid_input( array( 'cmplz_tc_wf_goods' => 'this is longer than ten' ) ) );
+		$this->assertSame( 'invalid', $result['status'] );
+		$this->assertArrayHasKey( 'cmplz_tc_wf_goods', $result['errors'] );
+	}
+
+	// -----------------------------------------------------------------
+	// SEC-H1 (Tier 3) — opt-in spam-check hook (off by default).
+	// -----------------------------------------------------------------
+
+	/** A truthy cmplz_tc_withdrawal_spam_check silently drops the submission. */
+	public function test_spam_check_filter_rejects_as_spam() {
+		reset_phpmailer_instance();
+		add_filter( 'cmplz_tc_withdrawal_spam_check', '__return_true' );
+		$result = $this->wd->process( $this->valid_input() );
+		$this->assertSame( 'spam', $result['status'] );
+		$this->assertSame( '', $result['token'], 'A spam reject stores no state token.' );
+		$this->assertEmpty( tests_retrieve_phpmailer_instance()->get_sent() );
+	}
+
+	// -----------------------------------------------------------------
+	// SEC-H1 / Refinement 2 — a suppressed send is never reported as success.
+	// -----------------------------------------------------------------
+
+	/** When a send throttle trips, process() reports try_again_later and sends nothing. */
+	public function test_throttled_dispatch_returns_try_again_later() {
+		reset_phpmailer_instance();
+		add_filter( 'cmplz_tc_withdrawal_email_global_max', static fn() => 0 );
+		$result = $this->wd->process( $this->valid_input() );
+		$this->assertSame( 'try_again_later', $result['status'], 'A throttled send must not be reported as success.' );
+		$this->assertEmpty( tests_retrieve_phpmailer_instance()->get_sent(), 'A throttled dispatch sends nothing.' );
+	}
+
+	/** The try-again-later state renders a general retry message, not the success or error screen. */
+	public function test_render_shows_try_again_later_message() {
+		add_filter( 'cmplz_tc_withdrawal_email_global_max', static fn() => 0 );
+		$result              = $this->wd->process( $this->valid_input() );
+		$_GET['cmplz-tc-wf'] = $result['token'];
+
+		$out = COMPLIANZ_TC::$document->render_withdrawal_form();
+		$this->assertStringContainsString( 'try again', $out, 'The consumer is asked to retry later.' );
+		$this->assertStringNotContainsString( 'cmplz-tc-wf-confirmation', $out, 'A throttled send must not show the success screen.' );
+		$this->assertStringNotContainsString( 'contact the merchant', $out, 'A transient throttle must not tell the consumer to contact the merchant.' );
+		$this->assertStringNotContainsString( '<form', $out, 'The form must not re-render on the try-again screen.' );
 	}
 
 	/** The per-client form-post rate limit rejects once the threshold is exceeded. */
@@ -223,6 +301,14 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertSame( 'jane@example.com', $state['values']['cmplz_tc_wf_email'] );
 	}
 
+	/** SEC-L3: the PRG state (which briefly holds sanitized PII on the failure path) expires quickly. */
+	public function test_prg_state_ttl_is_short() {
+		$result  = $this->wd->process( $this->valid_input( array( 'cmplz_tc_wf_name' => '' ) ) );
+		$timeout = (int) get_option( '_transient_timeout_' . cmplz_tc_withdrawal::STATE_PREFIX . $result['token'] );
+		$this->assertGreaterThan( 0, $timeout, 'The state transient must carry an expiry.' );
+		$this->assertLessThanOrEqual( 5 * MINUTE_IN_SECONDS + 5, $timeout - time(), 'The PRG state must expire within ~5 minutes.' );
+	}
+
 	/** consume_state is one-shot: a second read returns null. */
 	public function test_state_is_one_shot() {
 		$result = $this->wd->process( $this->valid_input( array( 'cmplz_tc_wf_name' => '' ) ) );
@@ -251,6 +337,22 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$headers  = $response->get_headers();
 		$this->assertArrayHasKey( 'Cache-Control', $headers );
 		$this->assertStringContainsString( 'no-store', $headers['Cache-Control'] );
+	}
+
+	/**
+	 * The nonce endpoint is per-IP throttled to bound mass minting (SEC-H2).
+	 *
+	 * Being throttled is harmless to a genuine consumer: an absent nonce is
+	 * accepted (soft signal), so a rare throttled page load still submits fine.
+	 */
+	public function test_nonce_endpoint_throttled_after_limit() {
+		add_filter( 'cmplz_tc_withdrawal_nonce_endpoint_max', static fn() => 1 );
+
+		$first = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/complianz_tc/v1/withdrawal-nonce' ) );
+		$this->assertSame( 200, $first->get_status() );
+
+		$second = rest_get_server()->dispatch( new WP_REST_Request( 'GET', '/complianz_tc/v1/withdrawal-nonce' ) );
+		$this->assertSame( 429, $second->get_status(), 'Requests beyond the per-IP limit are throttled.' );
 	}
 
 	// -----------------------------------------------------------------

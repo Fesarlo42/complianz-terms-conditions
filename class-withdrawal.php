@@ -88,7 +88,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 *
 		 * @param  array $input Raw (unslashed) submitted values.
 		 * @return array {
-		 *     @type string $status   One of success|invalid|invalid_nonce|too_fast|rate_limited|spam.
+		 *     @type string $status   One of success|delivery_error|try_again_later|invalid|invalid_nonce|too_fast|rate_limited|spam.
 		 *     @type array  $errors   Field-name (or general key) => message.
 		 *     @type array  $values   Sanitized values preserved for re-render.
 		 *     @type string $token    State transient token, or '' when none was stored.
@@ -106,17 +106,33 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 				return $this->reject_spam();
 			}
 
+			/**
+			 * Opt-in spam gate (off by default): a place to plug in a CAPTCHA, proof-of-work
+			 * or similar for a site under active abuse. Returning true drops the submission
+			 * silently, exactly like the honeypot.
+			 *
+			 * @since 1.4.0
+			 *
+			 * @param bool  $is_spam Whether to treat the submission as spam. Default false.
+			 * @param array $input   Raw (unslashed) submitted values.
+			 */
+			if ( true === apply_filters( 'cmplz_tc_withdrawal_spam_check', false, $input ) ) {
+				return $this->reject_spam();
+			}
+
 			// Nonce: present-but-invalid is a soft failure; absent does not block (NFR-S3).
 			$nonce = (string) ( isset( $input['cmplz_tc_wf_nonce'] ) ? $input['cmplz_tc_wf_nonce'] : '' );
 			if ( '' !== $nonce && ! $this->verify_nonce( $nonce ) ) {
 				return $this->fail( 'invalid_nonce', $this->preserve( $input ), __( 'Your session has expired. Please review the details below and submit again.', 'complianz-terms-conditions' ) );
 			}
 
-			// Minimum time-to-submit, checked only when the render timestamp is present.
-			if ( isset( $input['cmplz_tc_wf_rendered'] ) && '' !== (string) $input['cmplz_tc_wf_rendered'] ) {
-				if ( ( time() - (int) $input['cmplz_tc_wf_rendered'] ) < $this->min_submit_seconds() ) {
-					return $this->fail( 'too_fast', $this->preserve( $input ), __( 'That was a little too quick. Please review the details below and submit again.', 'complianz-terms-conditions' ) );
-				}
+			// Minimum time-to-submit. The render timestamp is mandatory (SEC-H1): the template
+			// renders it server-side so every genuine consumer (JS or not) submits with it,
+			// while a bare scripted POST that omits it is bounced here rather than sailing
+			// through. A missing, non-numeric or too-recent timestamp all soft-fail.
+			$rendered = (string) ( isset( $input['cmplz_tc_wf_rendered'] ) ? $input['cmplz_tc_wf_rendered'] : '' );
+			if ( '' === $rendered || ! ctype_digit( $rendered ) || ( time() - (int) $rendered ) < $this->min_submit_seconds() ) {
+				return $this->fail( 'too_fast', $this->preserve( $input ), __( 'That was a little too quick. Please review the details below and submit again.', 'complianz-terms-conditions' ) );
 			}
 
 			// Authoritative server-side validation.
@@ -145,8 +161,10 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 			 */
 			do_action( 'cmplz_tc_withdrawal_validated', $data );
 
-			// Send the plugin's emails; the result decides what the consumer sees (FR-19/FR-20).
-			$status = $this->dispatch_emails( $data ) ? 'success' : 'delivery_error';
+			// Send the plugin's emails; the result (success | delivery_error | try_again_later)
+			// decides what the consumer sees (FR-19/FR-20 / SEC-H1 refinement). A suppressed
+			// send is never reported as success.
+			$status = $this->dispatch_emails( $data );
 			$token  = $this->store_state( array( 'status' => $status ) );
 
 			return array(
@@ -375,7 +393,50 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 				$errors['cmplz_tc_wf_goods'] = __( 'Please describe the goods or service you are withdrawing from.', 'complianz-terms-conditions' );
 			}
 
+			// Length caps (SEC-M2): bound attacker-controlled content that flows verbatim
+			// into both emails. A field that already has a presence/format error is skipped.
+			foreach ( $this->field_max_lengths() as $key => $limit ) {
+				if ( isset( $errors[ $key ] ) ) {
+					continue;
+				}
+				$value = isset( $clean[ $key ] ) ? (string) $clean[ $key ] : '';
+				if ( mb_strlen( $value ) > (int) $limit ) {
+					$errors[ $key ] = __( 'This value is too long. Please shorten it and try again.', 'complianz-terms-conditions' );
+				}
+			}
+
 			return $errors;
+		}
+
+		/**
+		 * Maximum accepted length, in characters, per field (SEC-M2).
+		 *
+		 * Generous enough that a genuine consumer never hits them; they only stop the
+		 * multi-megabyte payloads that would otherwise inflate every outbound email.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return array<string,int> Field key => maximum length.
+		 */
+		private function field_max_lengths() {
+			$defaults = array(
+				'cmplz_tc_wf_name'       => 200,
+				'cmplz_tc_wf_email'      => 254,
+				'cmplz_tc_wf_goods'      => 5000,
+				'cmplz_tc_wf_address'    => 5000,
+				'cmplz_tc_wf_order_ref'  => 200,
+				'cmplz_tc_wf_order_date' => 20,
+				'cmplz_tc_wf_message'    => 5000,
+			);
+
+			/**
+			 * Filters the maximum accepted length per withdrawal field.
+			 *
+			 * @since 1.4.0
+			 *
+			 * @param array<string,int> $defaults Field key => maximum length in characters.
+			 */
+			return (array) apply_filters( 'cmplz_tc_withdrawal_field_max_lengths', $defaults );
 		}
 
 		/**
@@ -404,11 +465,35 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * @return bool True while the client is within the limit.
 		 */
 		private function within_rate_limit() {
-			$ip    = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-			$key   = 'cmplz_tc_wf_rl_' . md5( $ip . '|' . wp_salt( 'nonce' ) );
+			$key   = 'cmplz_tc_wf_rl_' . md5( $this->client_ip() . '|' . wp_salt( 'nonce' ) );
 			$count = (int) get_transient( $key ) + 1;
 			set_transient( $key, $count, $this->rate_limit_window() );
 			return $count <= $this->rate_limit_max();
+		}
+
+		/**
+		 * The best-effort client IP used to key every rate limit.
+		 *
+		 * Uses REMOTE_ADDR — the only address the server can trust — and never the
+		 * spoofable X-Forwarded-For. A site behind a trusted CDN/proxy can supply the
+		 * real client IP via the filter so a shared edge IP does not bucket every
+		 * visitor into one limit (SEC-M1).
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return string The client IP, or '' when unavailable.
+		 */
+		private function client_ip() {
+			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+
+			/**
+			 * Filters the client IP used for withdrawal rate limiting.
+			 *
+			 * @since 1.4.0
+			 *
+			 * @param string $ip The REMOTE_ADDR-derived client IP.
+			 */
+			return (string) apply_filters( 'cmplz_tc_withdrawal_client_ip', $ip );
 		}
 
 		/**
@@ -490,12 +575,17 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		/**
 		 * Lifetime in seconds of the PRG state transient.
 		 *
+		 * Kept short (SEC-L3): the failure path briefly stores sanitized PII for the
+		 * re-render, and on a cacheless site a transient lives in wp_options. The state
+		 * is one-shot (consumed on the redirect), so this is only the cap for an
+		 * abandoned redirect — 5 minutes is ample for the round-trip.
+		 *
 		 * @since 1.4.0
 		 *
 		 * @return int
 		 */
 		private function state_ttl() {
-			return (int) apply_filters( 'cmplz_tc_withdrawal_state_ttl', 10 * MINUTE_IN_SECONDS );
+			return (int) apply_filters( 'cmplz_tc_withdrawal_state_ttl', 5 * MINUTE_IN_SECONDS );
 		}
 
 		/**
@@ -510,41 +600,49 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 *
 		 * @param  mixed $data Action payload; expected to be the array of sanitized
 		 *                     fields, submission timestamp and source URL.
-		 * @return bool         True when nothing needed sending or both emails were
-		 *                      accepted; false when a send failed (a notice is recorded).
+		 * @return string       'success' when both emails were accepted (or nothing
+		 *                      needed sending), 'delivery_error' when a send failed (a
+		 *                      notice is recorded), or 'try_again_later' when a throttle
+		 *                      suppressed the send so the consumer should retry.
 		 */
 		public function dispatch_emails( $data ) {
 			if ( ! is_array( $data ) || empty( $data['fields'] ) || ! is_array( $data['fields'] ) ) {
-				return true;
+				return 'success';
 			}
 
 			// Own-link (or returns-off) path: the plugin sends no email (spec §7 / scenario 4).
 			if ( ! COMPLIANZ_TC::$document->uses_withdrawal_form() ) {
-				return true;
+				return 'success';
 			}
 
-			// FR-14: rate-limit the send, not only the form post. Suppression is intentional,
-			// not a delivery failure, so the consumer is not shown an error.
-			if ( ! $this->within_email_rate_limit() ) {
-				$this->log( 'withdrawal email dispatch skipped: send rate limit exceeded' );
-				return true;
+			$fields   = $data['fields'];
+			$consumer = isset( $fields['cmplz_tc_wf_email'] ) ? (string) $fields['cmplz_tc_wf_email'] : '';
+
+			// FR-14 / SEC-H1: rate-limit the SEND, not only the form post, across three
+			// layers — per-client (IP), per-recipient (throttles amplification aimed at one
+			// address), and a site-wide ceiling (bounds a distributed / IP-rotating flood).
+			// Any trip suppresses BOTH emails and asks the consumer to retry: the request is
+			// never half-sent, and a suppressed send is never reported as success.
+			if ( ! $this->within_email_rate_limit()
+				|| ! $this->within_recipient_email_limit( $consumer )
+				|| ! $this->within_global_email_limit() ) {
+				$this->log( 'withdrawal email dispatch throttled; consumer asked to retry later' );
+				return 'try_again_later';
 			}
 
-			$fields       = $data['fields'];
 			$submitted_at = isset( $data['submitted_at'] ) ? (int) $data['submitted_at'] : time();
 			$source_url   = isset( $data['source_url'] ) ? (string) $data['source_url'] : '';
-			$consumer     = isset( $fields['cmplz_tc_wf_email'] ) ? (string) $fields['cmplz_tc_wf_email'] : '';
 
 			$merchant_ok = $this->send_merchant_notification( $fields, $submitted_at, $source_url, $consumer );
 			// The acknowledgement wording depends on whether the merchant actually received the request.
 			$consumer_ok = $this->send_consumer_acknowledgement( $fields, $submitted_at, $consumer, $merchant_ok );
-			$ok          = $merchant_ok && $consumer_ok;
 
-			if ( ! $ok ) {
-				$this->record_mail_failure();
+			if ( $merchant_ok && $consumer_ok ) {
+				return 'success';
 			}
 
-			return $ok;
+			$this->record_mail_failure();
+			return 'delivery_error';
 		}
 
 		/**
@@ -561,6 +659,15 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		private function send_merchant_notification( $fields, $submitted_at, $source_url, $consumer ) {
 			// Recipient resolves never-empty via the Task-2b read-time filter.
 			$recipient = (string) cmplz_tc_get_value( 'withdrawal_notification_email' );
+
+			// SEC-L1: validate the admin-controlled recipient the same way the consumer
+			// address is, falling back to the always-valid site admin email if it is
+			// malformed. Done before the recipient filter so an integrator override keeps
+			// wp_mail()'s full flexibility (e.g. a "Name <addr>" recipient).
+			$recipient = $this->safe_email( $recipient );
+			if ( '' === $recipient ) {
+				$recipient = $this->safe_email( (string) get_option( 'admin_email' ) );
+			}
 
 			$subject = __( 'New withdrawal request', 'complianz-terms-conditions' );
 			$body    = $this->merchant_body( $fields, $submitted_at, $source_url );
@@ -796,11 +903,52 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * @return bool True while the client is within the limit.
 		 */
 		private function within_email_rate_limit() {
-			$ip    = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-			$key   = 'cmplz_tc_wf_email_rl_' . md5( $ip . '|' . wp_salt( 'nonce' ) );
+			$key   = 'cmplz_tc_wf_email_rl_' . md5( $this->client_ip() . '|' . wp_salt( 'nonce' ) );
 			$count = (int) get_transient( $key ) + 1;
 			set_transient( $key, $count, $this->email_rate_limit_window() );
 			return $count <= $this->email_rate_limit_max();
+		}
+
+		/**
+		 * Increment and check the per-recipient acknowledgement throttle (SEC-H1).
+		 *
+		 * Keyed on the consumer address so an attacker cannot turn the form into an
+		 * amplifier that blasts one victim with mail from the merchant's domain. An
+		 * empty address is not throttled (validation guarantees a real one upstream).
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param  string $consumer The consumer email address.
+		 * @return bool              True while the address is within the limit.
+		 */
+		private function within_recipient_email_limit( $consumer ) {
+			$consumer = strtolower( trim( (string) $consumer ) );
+			if ( '' === $consumer ) {
+				return true;
+			}
+			$key   = 'cmplz_tc_wf_email_rcpt_' . md5( $consumer . '|' . wp_salt( 'nonce' ) );
+			$count = (int) get_transient( $key ) + 1;
+			set_transient( $key, $count, $this->email_recipient_window() );
+			return $count <= $this->email_recipient_max();
+		}
+
+		/**
+		 * Increment and check the site-wide email-send ceiling (SEC-H1).
+		 *
+		 * A single filterable counter that bounds total outbound withdrawal emails per
+		 * window regardless of source IP — the one control that survives IP rotation and
+		 * a distributed flood. Set generously so genuine traffic never approaches it; a
+		 * merchant with high legitimate volume raises it via the max filter.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return bool True while the site is within the ceiling.
+		 */
+		private function within_global_email_limit() {
+			$key   = 'cmplz_tc_wf_email_global';
+			$count = (int) get_transient( $key ) + 1;
+			set_transient( $key, $count, $this->email_global_window() );
+			return $count <= $this->email_global_max();
 		}
 
 		/**
@@ -823,6 +971,90 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 */
 		private function email_rate_limit_window() {
 			return (int) apply_filters( 'cmplz_tc_withdrawal_email_rate_limit_window', 10 * MINUTE_IN_SECONDS );
+		}
+
+		/**
+		 * Maximum acknowledgements sent to a single address within the recipient window.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return int
+		 */
+		private function email_recipient_max() {
+			return (int) apply_filters( 'cmplz_tc_withdrawal_email_per_recipient_max', 3 );
+		}
+
+		/**
+		 * Per-recipient throttle window in seconds.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return int
+		 */
+		private function email_recipient_window() {
+			return (int) apply_filters( 'cmplz_tc_withdrawal_email_per_recipient_window', HOUR_IN_SECONDS );
+		}
+
+		/**
+		 * Site-wide maximum withdrawal emails per global window. Raise via the filter.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return int
+		 */
+		private function email_global_max() {
+			return (int) apply_filters( 'cmplz_tc_withdrawal_email_global_max', 50 );
+		}
+
+		/**
+		 * Site-wide email-ceiling window in seconds.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return int
+		 */
+		private function email_global_window() {
+			return (int) apply_filters( 'cmplz_tc_withdrawal_email_global_window', HOUR_IN_SECONDS );
+		}
+
+		/**
+		 * Increment and check the per-IP throttle on the uncached nonce endpoint (SEC-H2).
+		 *
+		 * Bounds mass nonce minting. Being throttled is harmless to a genuine consumer:
+		 * an absent nonce is accepted as a soft signal, so a rare throttled page load
+		 * still submits fine.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return bool True while the client is within the limit.
+		 */
+		public function within_nonce_endpoint_rate_limit() {
+			$key   = 'cmplz_tc_wf_nonce_rl_' . md5( $this->client_ip() . '|' . wp_salt( 'nonce' ) );
+			$count = (int) get_transient( $key ) + 1;
+			set_transient( $key, $count, $this->nonce_endpoint_window() );
+			return $count <= $this->nonce_endpoint_max();
+		}
+
+		/**
+		 * Maximum nonce-endpoint requests allowed per client within the window.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return int
+		 */
+		private function nonce_endpoint_max() {
+			return (int) apply_filters( 'cmplz_tc_withdrawal_nonce_endpoint_max', 30 );
+		}
+
+		/**
+		 * Nonce-endpoint throttle window in seconds.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return int
+		 */
+		private function nonce_endpoint_window() {
+			return (int) apply_filters( 'cmplz_tc_withdrawal_nonce_endpoint_window', MINUTE_IN_SECONDS );
 		}
 
 		/**

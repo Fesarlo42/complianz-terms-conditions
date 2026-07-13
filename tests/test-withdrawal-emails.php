@@ -128,6 +128,17 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 		$this->assertNotNull( $this->sent_to( 'jane@example.com' ), 'Consumer acknowledgement must reach the consumer.' );
 	}
 
+	/** SEC-L1: a malformed configured recipient is validated and falls back to the site admin email. */
+	public function test_merchant_recipient_validated_falls_back_to_admin() {
+		$this->set_merchant( array( 'withdrawal_notification_email' => 'definitely not an email' ) );
+		update_option( 'admin_email', 'siteadmin@shop.example' );
+
+		$this->wd->dispatch_emails( $this->payload() );
+
+		$this->assertNotNull( $this->sent_to( 'siteadmin@shop.example' ), 'A malformed recipient must fall back to the valid admin email.' );
+		$this->assertNull( $this->sent_to( 'definitely not an email' ), 'The malformed address must never be used as a recipient.' );
+	}
+
 	/** The recipient resolves never-empty to the contact email (Task 2b), not blank. */
 	public function test_merchant_recipient_never_empty_falls_back_to_contact() {
 		$this->set_merchant(
@@ -310,15 +321,15 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	// #5 — dispatch reports delivery so process() can drive the consumer UX.
 	// -----------------------------------------------------------------
 
-	/** Dispatch returns true and records no failure when both emails send. */
-	public function test_dispatch_returns_true_when_both_succeed() {
+	/** Dispatch reports success and records no failure when both emails send. */
+	public function test_dispatch_reports_success_when_both_succeed() {
 		$this->set_merchant();
-		$this->assertTrue( $this->wd->dispatch_emails( $this->payload() ) );
+		$this->assertSame( 'success', $this->wd->dispatch_emails( $this->payload() ) );
 		$this->assertEmpty( get_option( 'cmplz_tc_withdrawal_mail_failure' ) );
 	}
 
-	/** Dispatch returns false (and records a failure) when the consumer email fails. */
-	public function test_dispatch_returns_false_when_consumer_email_fails() {
+	/** Dispatch reports delivery_error (and records a failure) when the consumer email fails. */
+	public function test_dispatch_reports_delivery_error_when_consumer_email_fails() {
 		$this->set_merchant();
 		add_filter(
 			'pre_wp_mail',
@@ -329,12 +340,12 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 			10,
 			2
 		);
-		$this->assertFalse( $this->wd->dispatch_emails( $this->payload() ) );
+		$this->assertSame( 'delivery_error', $this->wd->dispatch_emails( $this->payload() ) );
 		$this->assertNotEmpty( get_option( 'cmplz_tc_withdrawal_mail_failure' ) );
 	}
 
-	/** Dispatch returns false when only the merchant notification fails (either-fails). */
-	public function test_dispatch_returns_false_when_merchant_email_fails() {
+	/** Dispatch reports delivery_error when only the merchant notification fails (either-fails). */
+	public function test_dispatch_reports_delivery_error_when_merchant_email_fails() {
 		$this->set_merchant();
 		add_filter(
 			'pre_wp_mail',
@@ -345,7 +356,48 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 			10,
 			2
 		);
-		$this->assertFalse( $this->wd->dispatch_emails( $this->payload() ) );
+		$this->assertSame( 'delivery_error', $this->wd->dispatch_emails( $this->payload() ) );
+	}
+
+	// -----------------------------------------------------------------
+	// SEC-H1 — de-amplification: per-recipient + global send throttles.
+	// -----------------------------------------------------------------
+
+	/** A single consumer address cannot receive more acks than the per-recipient cap. */
+	public function test_per_recipient_throttle_caps_repeat_acks() {
+		$this->set_merchant();
+		add_filter( 'cmplz_tc_withdrawal_email_per_recipient_max', static fn() => 1 );
+
+		$this->assertSame( 'success', $this->wd->dispatch_emails( $this->payload() ) );
+		$this->assertSame( 2, $this->sent_count(), 'The first dispatch to this address sends both emails.' );
+
+		// A second attempt to the SAME consumer address is throttled: nothing sent.
+		$this->assertSame( 'try_again_later', $this->wd->dispatch_emails( $this->payload() ) );
+		$this->assertSame( 2, $this->sent_count(), 'A repeat to the same address must send nothing.' );
+	}
+
+	/** The global site-wide ceiling suppresses sends beyond the limit, regardless of address. */
+	public function test_global_ceiling_suppresses_beyond_limit() {
+		$this->set_merchant();
+		add_filter( 'cmplz_tc_withdrawal_email_global_max', static fn() => 1 );
+
+		$this->assertSame( 'success', $this->wd->dispatch_emails( $this->payload() ) );
+		$this->assertSame( 2, $this->sent_count() );
+
+		// A different consumer address still trips the global ceiling.
+		$this->assertSame( 'try_again_later', $this->wd->dispatch_emails( $this->payload( array( 'cmplz_tc_wf_email' => 'bob@example.com' ) ) ) );
+		$this->assertSame( 2, $this->sent_count(), 'No send is allowed once the global ceiling is reached.' );
+	}
+
+	/** The merchant can raise the global ceiling at will via the filter. */
+	public function test_global_ceiling_can_be_raised_by_filter() {
+		$this->set_merchant();
+		add_filter( 'cmplz_tc_withdrawal_email_global_max', static fn() => 100 );
+
+		foreach ( array( 'a@example.com', 'b@example.com', 'c@example.com' ) as $address ) {
+			$this->assertSame( 'success', $this->wd->dispatch_emails( $this->payload( array( 'cmplz_tc_wf_email' => $address ) ) ) );
+		}
+		$this->assertSame( 6, $this->sent_count(), 'A raised ceiling lets all three dispatches through.' );
 	}
 
 	/** When the merchant send fails, the consumer copy drops the "sent to the merchant" claim. */
@@ -384,7 +436,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 				'if_returns_custom' => 'yes',
 			)
 		);
-		$this->assertTrue( $this->wd->dispatch_emails( $this->payload() ), 'Own-link suppression is not a delivery failure.' );
+		$this->assertSame( 'success', $this->wd->dispatch_emails( $this->payload() ), 'Own-link suppression is not a delivery failure.' );
 		$this->assertSame( 0, $this->sent_count(), 'No email may be sent on the own-link path.' );
 	}
 

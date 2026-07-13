@@ -197,9 +197,9 @@ foreach ( $wf_fields as $wf_f ) {
 		<input type="text" id="cmplz-tc-wf-website" name="cmplz_tc_wf_website" value="" tabindex="-1" autocomplete="off" />
 	</div>
 
-	<?php /* Integrity placeholders populated by the submission handler (Task 7). */ ?>
+	<?php // Nonce stays empty (JS hydrates it from the uncached endpoint, keeping the page cacheable); the render timestamp is server-side so the mandatory min-time gate (SEC-H1) works without JS. ?>
 	<input type="hidden" name="cmplz_tc_wf_nonce" value="" />
-	<input type="hidden" name="cmplz_tc_wf_rendered" value="" />
+	<input type="hidden" name="cmplz_tc_wf_rendered" value="<?php echo esc_attr( (string) time() ); ?>" />
 	<input type="hidden" name="action" value="cmplz_tc_submit_withdrawal" />
 
 	<button type="submit" class="cmplz-tc-wf-submit"><?php esc_html_e( 'Send withdrawal request', 'complianz-terms-conditions' ); ?></button>

@@ -2209,6 +2209,9 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 				if ( 'delivery_error' === $state['status'] ) {
 					return $this->withdrawal_delivery_error_html();
 				}
+				if ( 'try_again_later' === $state['status'] ) {
+					return $this->withdrawal_try_again_html();
+				}
 			}
 
 			$args = array( 'merchant_identity' => $this->get_merchant_identity() );
@@ -2304,6 +2307,26 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 				$html .= '<p class="cmplz-tc-wf-merchant-contact">' . nl2br( esc_html( $contact ) ) . '</p>';
 			}
 			return $html . '</div>';
+		}
+
+		/**
+		 * Build the on-screen message shown when a send was throttled (SEC-H1).
+		 *
+		 * A transient anti-abuse throttle suppressed the emails, so nothing was sent
+		 * and a retry will work. The copy is deliberately general — it must not reveal
+		 * that a limit was hit or reflect badly on the merchant — and never claims
+		 * success (Refinement 2).
+		 *
+		 * @since  1.4.0
+		 * @access private
+		 *
+		 * @return string  Escaped message HTML.
+		 */
+		private function withdrawal_try_again_html() {
+			return '<div class="cmplz-tc-wf-error" role="alert">'
+				. '<h2>' . esc_html__( 'We could not process your request right now', 'complianz-terms-conditions' ) . '</h2>'
+				. '<p>' . esc_html__( 'Something went wrong while sending your withdrawal request. Please try again in a little while.', 'complianz-terms-conditions' ) . '</p>'
+				. '</div>';
 		}
 
 		/**
