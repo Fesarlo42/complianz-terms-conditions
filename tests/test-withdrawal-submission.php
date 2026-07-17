@@ -469,6 +469,67 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '<form', $out, 'Own-link path must not render the form.' );
 	}
 
+	/** Switch the site onto the own-link (returns-custom) path. */
+	private function use_own_link_path() {
+		update_option(
+			'complianz_tc_options_terms-conditions',
+			array(
+				'if_returns'             => 'yes',
+				'if_returns_custom'      => 'yes',
+				'if_returns_custom_link' => 'https://merchant.example/withdraw',
+			)
+		);
+	}
+
+	/**
+	 * Finding #4: a submission on the own-link path must be rejected before any side-effect —
+	 * no stored state, no token, no phantom success (dispatch_emails() would report success
+	 * while sending nothing).
+	 */
+	public function test_own_link_submission_is_rejected_before_side_effects() {
+		global $wpdb;
+		$this->use_own_link_path();
+
+		$like   = $wpdb->esc_like( '_transient_' . cmplz_tc_withdrawal::STATE_PREFIX ) . '%';
+		$sql    = "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s";
+		$before = (int) $wpdb->get_var( $wpdb->prepare( $sql, $like ) );
+
+		$result = $this->wd->process( $this->valid_input() );
+		$after  = (int) $wpdb->get_var( $wpdb->prepare( $sql, $like ) );
+
+		$this->assertSame( 'unavailable', $result['status'], 'Off the form path a submission must not be processed.' );
+		$this->assertSame( '', $result['token'], 'A rejected submission stores no state token.' );
+		$this->assertSame( $before, $after, 'A rejected submission must not store any state transient.' );
+	}
+
+	/** Finding #4: the integrator seam must not fire for a submission off the form path. */
+	public function test_own_link_submission_does_not_fire_validated_action() {
+		$this->use_own_link_path();
+
+		$fired = 0;
+		add_action(
+			'cmplz_tc_withdrawal_validated',
+			static function () use ( &$fired ) {
+				++$fired;
+			}
+		);
+
+		$this->wd->process( $this->valid_input() );
+		$this->assertSame( 0, $fired, 'cmplz_tc_withdrawal_validated must not fire on the own-link path.' );
+	}
+
+	/** Finding #4: the built-in-form path is unaffected — the guard is a no-op there. */
+	public function test_form_path_still_processes_normally() {
+		update_option(
+			'complianz_tc_options_terms-conditions',
+			array(
+				'if_returns'        => 'yes',
+				'if_returns_custom' => 'no',
+			)
+		);
+		$this->assertSame( 'success', $this->wd->process( $this->valid_input() )['status'] );
+	}
+
 	// -----------------------------------------------------------------
 	// Delivery-failure surfaces to the consumer.
 	// -----------------------------------------------------------------

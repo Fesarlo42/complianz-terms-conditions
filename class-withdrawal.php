@@ -76,7 +76,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 *
 		 * @param  array $input Raw (unslashed) submitted values.
 		 * @return array {
-		 *     @type string $status   One of success|delivery_error|try_again_later|invalid|invalid_nonce|too_fast|rate_limited|spam.
+		 *     @type string $status   One of success|delivery_error|try_again_later|unavailable|invalid|invalid_nonce|too_fast|rate_limited|spam.
 		 *     @type array  $errors   Field-name (or general key) => message.
 		 *     @type array  $values   Sanitized values preserved for re-render.
 		 *     @type string $token    State transient token, or '' when none was stored.
@@ -84,6 +84,17 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 * }
 		 */
 		public function process( array $input ) {
+			// The endpoint stays live on every request, but only the built-in-form path may process a submission: on the own-link/returns-off path, reject before any side-effect (no action, no dispatch, no stored state, no success).
+			if ( ! COMPLIANZ_TC::$document->uses_withdrawal_form() ) {
+				return array(
+					'status'   => 'unavailable',
+					'errors'   => array(),
+					'values'   => array(),
+					'token'    => '',
+					'redirect' => $this->redirect_base(),
+				);
+			}
+
 			if ( ! $this->within_rate_limit() ) {
 				// Reject with a tokenless status instead of storing per-request state, so a flood cannot inflate wp_options.
 				return array(
