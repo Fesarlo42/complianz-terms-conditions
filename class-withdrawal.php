@@ -85,7 +85,14 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		 */
 		public function process( array $input ) {
 			if ( ! $this->within_rate_limit() ) {
-				return $this->fail( 'rate_limited', $this->preserve( $input ), __( 'Too many attempts. Please wait a moment and try again.', 'complianz-terms-conditions' ) );
+				// Reject with a tokenless status instead of storing per-request state, so a flood cannot inflate wp_options.
+				return array(
+					'status'   => 'rate_limited',
+					'errors'   => array(),
+					'values'   => array(),
+					'token'    => '',
+					'redirect' => $this->redirect_with_status( 'rate_limited' ),
+				);
 			}
 
 			// Honeypot: a filled hidden field means a bot — silent drop.
@@ -372,7 +379,7 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 				$errors['cmplz_tc_wf_email'] = __( 'Please enter a valid email address.', 'complianz-terms-conditions' );
 			}
 
-			// Length caps
+			// Length caps.
 			foreach ( $this->field_max_lengths() as $key => $limit ) {
 				if ( isset( $errors[ $key ] ) ) {
 					continue;
@@ -536,6 +543,19 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		private function redirect_with_token( $token ) {
 			$base = remove_query_arg( 'cmplz-tc-wf', $this->redirect_base() );
 			return add_query_arg( 'cmplz-tc-wf', $token, $base );
+		}
+
+		/**
+		 * Append a reserved, tokenless status to the redirect base (carries no stored state).
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param  string $status Reserved status keyword.
+		 * @return string         The redirect URL.
+		 */
+		private function redirect_with_status( $status ) {
+			$base = remove_query_arg( 'cmplz-tc-wf', $this->redirect_base() );
+			return add_query_arg( 'cmplz-tc-wf', $status, $base );
 		}
 
 		/**

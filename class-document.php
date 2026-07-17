@@ -2259,6 +2259,15 @@ if ( ! class_exists( 'cmplz_tc_document' ) ) {
 			if ( '' === $token ) {
 				return null;
 			}
+			// Reserved, tokenless statuses carry no stored state (e.g. rate limiting).
+			if ( 'rate_limited' === $token ) {
+				return array(
+					'status' => 'rate_limited',
+					'errors' => array(
+						'cmplz_tc_wf_form' => __( 'Too many attempts. Please wait a moment and try again.', 'complianz-terms-conditions' ),
+					),
+				);
+			}
 			return cmplz_tc_withdrawal::consume_state( $token );
 		}
 

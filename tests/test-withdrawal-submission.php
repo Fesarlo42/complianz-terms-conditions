@@ -262,7 +262,54 @@ class Test_Withdrawal_Submission extends WP_UnitTestCase {
 		add_filter( 'cmplz_tc_withdrawal_rate_limit_max', static fn() => 2 );
 		$this->assertSame( 'success', $this->wd->process( $this->valid_input() )['status'] );
 		$this->assertSame( 'success', $this->wd->process( $this->valid_input() )['status'] );
-		$this->assertSame( 'rate_limited', $this->wd->process( $this->valid_input() )['status'] );
+
+		$result = $this->wd->process( $this->valid_input() );
+		$this->assertSame( 'rate_limited', $result['status'] );
+		$this->assertSame( '', $result['token'], 'The rate-limited path stores no state token.' );
+		$this->assertStringContainsString( 'cmplz-tc-wf=rate_limited', $result['redirect'], 'The reserved status rides the redirect query instead of a token.' );
+	}
+
+	/**
+	 * Finding #8: a rate-limited submission must allocate no per-request state transient,
+	 * so a sustained flood cannot inflate wp_options.
+	 */
+	public function test_rate_limited_allocates_no_state_transient() {
+		global $wpdb;
+		add_filter( 'cmplz_tc_withdrawal_rate_limit_max', static fn() => 1 );
+
+		// The first request passes and legitimately stores its own success state.
+		$this->wd->process( $this->valid_input() );
+
+		$like    = $wpdb->esc_like( '_transient_' . cmplz_tc_withdrawal::STATE_PREFIX ) . '%';
+		$sql     = "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s";
+		$before  = (int) $wpdb->get_var( $wpdb->prepare( $sql, $like ) );
+
+		// Every further request is rejected as rate_limited and must write nothing.
+		$this->wd->process( $this->valid_input() );
+		$this->wd->process( $this->valid_input() );
+		$after = (int) $wpdb->get_var( $wpdb->prepare( $sql, $like ) );
+
+		$this->assertSame( $before, $after, 'Rate-limited submissions must not allocate state transients.' );
+	}
+
+	/**
+	 * The reserved ?cmplz-tc-wf=rate_limited sentinel re-renders the form with the
+	 * generic message and reads/writes no transient (side-effect-free, idempotent).
+	 */
+	public function test_render_shows_rate_limited_message_without_transient() {
+		global $wpdb;
+		$_GET['cmplz-tc-wf'] = 'rate_limited';
+
+		$like   = $wpdb->esc_like( '_transient_' . cmplz_tc_withdrawal::STATE_PREFIX ) . '%';
+		$sql    = "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s";
+		$before = (int) $wpdb->get_var( $wpdb->prepare( $sql, $like ) );
+
+		$out   = COMPLIANZ_TC::$document->render_withdrawal_form();
+		$after = (int) $wpdb->get_var( $wpdb->prepare( $sql, $like ) );
+
+		$this->assertStringContainsString( 'Too many attempts', $out, 'The generic rate-limit message is shown.' );
+		$this->assertStringContainsString( '<form', $out, 'The form re-renders so the consumer can retry.' );
+		$this->assertSame( $before, $after, 'The reserved sentinel touches no transient.' );
 	}
 
 	// -----------------------------------------------------------------
