@@ -23,21 +23,43 @@ function lessTask() {
 		.pipe(concat('wizard.min.css'))
 		.pipe(gulp.dest('./assets/css'));
 
-	return mergeStream(admin, wizard);
+	// Hand-authored CSS (not LESS): minify to .min.css only, never rewrite the source.
+	const withdrawal = gulp.src('./assets/css/withdrawal-form.css')
+		.pipe(cssuglify())
+		.pipe(concat('withdrawal-form.min.css'))
+		.pipe(gulp.dest('./assets/css'));
+
+	return mergeStream(admin, wizard, withdrawal);
 }
 export { lessTask as less };
 
 function jsTask() {
-	return gulp.src('assets/js/admin.js')
+	const admin = gulp.src('assets/js/admin.js')
 		.pipe(concat('admin.min.js'))
 		.pipe(jsuglify())
 		.pipe(gulp.dest('./assets/js'));
+
+	const withdrawal = gulp.src('assets/js/withdrawal-form.js')
+		.pipe(concat('withdrawal-form.min.js'))
+		.pipe(jsuglify())
+		.pipe(gulp.dest('./assets/js'));
+
+	return mergeStream(admin, withdrawal);
 }
 export { jsTask as js };
 
 function defaultTask(cb) {
-	gulp.watch('./assets/css/*.less', { ignoreInitial: false }, lessTask);
-	gulp.watch('./assets/js/admin.js', { ignoreInitial: false }, jsTask);
+	// Watch the .css source by name (not *.css) so the generated .min.css never retriggers.
+	gulp.watch(
+		[ './assets/css/*.less', './assets/css/withdrawal-form.css' ],
+		{ ignoreInitial: false },
+		lessTask
+	);
+	gulp.watch(
+		[ './assets/js/admin.js', './assets/js/withdrawal-form.js' ],
+		{ ignoreInitial: false },
+		jsTask
+	);
 	cb();
 }
 export default defaultTask;
