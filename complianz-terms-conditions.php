@@ -202,7 +202,6 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 
 			// The withdrawal handler registers a public admin-post endpoint on all requests.
 			self::$withdrawal = new cmplz_tc_withdrawal();
-			self::$withdrawal->init();
 		}
 
 		/**

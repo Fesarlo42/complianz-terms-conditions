@@ -75,8 +75,7 @@ function cmplz_tc_documents_rest_route() {
  * @return WP_REST_Response The nonce and current server timestamp, or a 429 when throttled.
  */
 function cmplz_tc_rest_api_withdrawal_nonce() {
-	$withdrawal = new cmplz_tc_withdrawal();
-	if ( ! $withdrawal->within_nonce_endpoint_rate_limit() ) {
+	if ( ! COMPLIANZ_TC::$withdrawal->within_nonce_endpoint_rate_limit() ) {
 		$response = new WP_REST_Response( array( 'error' => 'rate_limited' ), 429 );
 		$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
 		return $response;

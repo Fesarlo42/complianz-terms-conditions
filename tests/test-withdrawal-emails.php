@@ -23,7 +23,7 @@ class Test_Withdrawal_Emails extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 		$_SERVER['REMOTE_ADDR'] = '203.0.113.9';
-		$this->wd               = new cmplz_tc_withdrawal();
+		$this->wd               = cmplz_tc_withdrawal::this();
 		reset_phpmailer_instance();
 		delete_option( 'cmplz_tc_withdrawal_mail_failure' );
 	}

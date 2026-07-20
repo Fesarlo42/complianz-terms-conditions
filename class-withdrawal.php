@@ -38,6 +38,47 @@ if ( ! class_exists( 'cmplz_tc_withdrawal' ) ) {
 		const DISMISS_ARG = 'cmplz_tc_wf_dismiss_mail_failure';
 
 		/**
+		 * Holds the single instance of this class.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @var cmplz_tc_withdrawal|null
+		 */
+		private static $_this; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore -- Underscore prefix is part of the established singleton accessor pattern used throughout this codebase.
+
+		/**
+		 * Enforce the singleton and register the hooks.
+		 *
+		 * @since 1.4.0
+		 */
+		public function __construct() {
+			if ( isset( self::$_this ) ) {
+				wp_die(
+					esc_html(
+						sprintf(
+							'%s is a singleton class and you cannot create a second instance.',
+							get_class( $this )
+						)
+					)
+				);
+			}
+
+			self::$_this = $this;
+			$this->init();
+		}
+
+		/**
+		 * Return the single instance of this class.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @return cmplz_tc_withdrawal The singleton instance.
+		 */
+		public static function this() {
+			return self::$_this;
+		}
+
+		/**
 		 * Register the public submission endpoints and the email/notice hooks.
 		 *
 		 * @since 1.4.0
