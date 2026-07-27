@@ -81,7 +81,10 @@ if ( ! function_exists( 'cmplz_tc_get_template' ) ) {
 		// Replace {key} placeholder tokens with the provided argument values.
 		if ( ! empty( $args ) ) {
 			foreach ( $args as $fieldname => $value ) {
-				$contents = str_replace( '{' . $fieldname . '}', $value, $contents );
+				// Only scalars are token-substitutable; skip arrays (e.g. field errors/values).
+				if ( is_scalar( $value ) ) {
+					$contents = str_replace( '{' . $fieldname . '}', (string) $value, $contents );
+				}
 			}
 		}
 
@@ -179,7 +182,33 @@ if ( ! function_exists( 'cmplz_tc_get_value' ) ) {
 				$value = apply_filters( 'wpml_translate_single_string', $value, 'complianz', $fieldname );
 			}
 		}
-		return $value;
+
+		// Per-field value filter (e.g. never-empty resolution for withdrawal_notification_email).
+		return apply_filters( "cmplz_tc_fieldvalue_{$fieldname}", $value, $fieldname );
+	}
+}
+
+if ( ! function_exists( 'cmplz_tc_default_withdrawal_notification_email' ) ) {
+	/**
+	 * Resolves the recipient for Complianz withdrawal-form requests, never empty.
+	 *
+	 * Returns the given value when it is a non-empty string; otherwise prefers the
+	 * general contact email captured in the wizard (email_company) and falls back
+	 * to the site administrator address. Doubles as the config default pre-fill
+	 * (called with no argument) and the read-time value filter callback for
+	 * withdrawal_notification_email, so an empty saved value still resolves.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string $value Current value to keep when non-empty. Default ''.
+	 * @return string A recipient email address.
+	 */
+	function cmplz_tc_default_withdrawal_notification_email( $value = '' ) {
+		if ( '' !== (string) $value ) {
+			return $value;
+		}
+		$company = (string) cmplz_tc_get_value( 'email_company', 'terms-conditions' );
+		return '' !== $company ? $company : (string) get_option( 'admin_email' );
 	}
 }
 

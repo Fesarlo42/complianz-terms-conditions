@@ -1,0 +1,135 @@
+/**
+ * Front-end styles for the Complianz Terms & Conditions withdrawal form.
+ *
+ * @package Complianz_Terms_Conditions
+ */
+
+.cmplz-tc-withdrawal-form {
+	max-width: 40rem;
+}
+
+.cmplz-tc-withdrawal-form .cmplz-tc-wf-field {
+	margin-bottom: 1.25rem;
+}
+
+.cmplz-tc-withdrawal-form label {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-weight: 600;
+}
+
+.cmplz-tc-withdrawal-form input,
+.cmplz-tc-withdrawal-form textarea {
+	width: 100%;
+	padding: 0.5rem 0.65rem;
+	border: 1px solid #6b7280;
+	border-radius: 4px;
+	font: inherit;
+}
+
+.cmplz-tc-withdrawal-form textarea {
+	min-height: 6rem;
+}
+
+/* Visible keyboard focus for full keyboard operability; includes the
+   error-summary links, which move focus into the form. */
+.cmplz-tc-withdrawal-form input:focus-visible,
+.cmplz-tc-withdrawal-form textarea:focus-visible,
+.cmplz-tc-withdrawal-form button:focus-visible,
+.cmplz-tc-withdrawal-form a:focus-visible {
+	outline: 3px solid #2563eb;
+	outline-offset: 2px;
+}
+
+.cmplz-tc-wf-required {
+	color: #b91c1c;
+}
+
+.cmplz-tc-withdrawal-form [aria-invalid="true"] {
+	border-color: #b91c1c;
+}
+
+.cmplz-tc-wf-field-error {
+	display: block;
+	margin-top: 0.35rem;
+	color: #b91c1c;
+	font-size: 0.9em;
+}
+
+.cmplz-tc-wf-errors {
+	margin-bottom: 1.5rem;
+	padding: 0.75rem 1rem;
+	border: 1px solid #b91c1c;
+	border-radius: 4px;
+	background: #fef2f2;
+	color: #7f1d1d;
+}
+
+.cmplz-tc-wf-errors ul {
+	margin: 0.25rem 0 0;
+	padding-left: 1.25rem;
+}
+
+.cmplz-tc-wf-merchant {
+	margin-bottom: 1.5rem;
+}
+
+/* Left to inherit theme/browser button styling: the native default is legible and
+   imposing brand colours would fight the host theme. Focus ring is guaranteed by the
+   :focus-visible rule above. */
+.cmplz-tc-wf-submit {
+	padding: 0.6rem 1.2rem;
+	font: inherit;
+	cursor: pointer;
+}
+
+/* On-screen confirmation shown after a successful submission. */
+.cmplz-tc-wf-confirmation {
+	max-width: 40rem;
+	padding: 1rem 1.25rem;
+	border: 1px solid #15803d;
+	border-radius: 4px;
+	background: #f0fdf4;
+	color: #14532d;
+}
+
+.cmplz-tc-wf-confirmation h2 {
+	margin-top: 0;
+}
+
+/* On-screen delivery-failure / retry message — same shape as the confirmation, in
+   an error tone. #7f1d1d on #fef2f2 is 9.16:1 (AA). */
+.cmplz-tc-wf-error {
+	max-width: 40rem;
+	padding: 1rem 1.25rem;
+	border: 1px solid #b91c1c;
+	border-radius: 4px;
+	background: #fef2f2;
+	color: #7f1d1d;
+}
+
+.cmplz-tc-wf-error h2 {
+	margin-top: 0;
+}
+
+/* The result containers receive programmatic focus after the PRG. Use :focus, not
+   :focus-visible — a scripted focus() on a tabindex=-1 container does not reliably
+   trigger :focus-visible, so this keeps the move visible even when a theme resets outlines. */
+.cmplz-tc-wf-confirmation:focus,
+.cmplz-tc-wf-error:focus {
+	outline: 3px solid #2563eb;
+	outline-offset: 2px;
+}
+
+/* Honeypot: removed from view but still submitted, so bots fill it. */
+.cmplz-tc-wf-hp {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(1px, 1px, 1px, 1px);
+	white-space: nowrap;
+	border: 0;
+}

@@ -3,7 +3,7 @@
  * Plugin Name: Complianz - Terms and Conditions
  * Plugin URI: https://wordpress.org/plugins/complianz-terms-conditions
  * Description: Plugin from Complianz to generate Terms & Conditions for your website.
- * Version: 1.3.1
+ * Version: 1.4.0
  * Requires at least: 5.7
  * Requires PHP: 7.4
  * Text Domain: complianz-terms-conditions
@@ -165,6 +165,15 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 		public static $document;
 
 		/**
+		 * Holds the withdrawal submission handler instance.
+		 *
+		 * @since  1.4.0
+		 * @access public
+		 * @var    cmplz_tc_withdrawal
+		 */
+		public static $withdrawal;
+
+		/**
 		 * Initialises the plugin by setting up constants, loading files, and instantiating components.
 		 *
 		 * Called once via get_instance(). Admin-only components are conditionally
@@ -190,6 +199,9 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 
 			// The document object is needed both on the frontend (shortcode) and in admin.
 			self::$document = new cmplz_tc_document();
+
+			// The withdrawal handler registers a public admin-post endpoint on all requests.
+			self::$withdrawal = new cmplz_tc_withdrawal();
 		}
 
 		/**
@@ -243,7 +255,7 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 			define( 'cmplz_tc_plugin_file', __FILE__ ); // phpcs:ignore Generic.NamingConventions.UpperCaseConstantName.ConstantNotUpperCase -- Lowercase constant name; established across codebase and add-ons.
 			// Append a timestamp in SCRIPT_DEBUG mode to bust browser/CDN asset caches.
 			$debug = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? time() : '';
-			define( 'cmplz_tc_version', '1.3.1' . $debug ); // phpcs:ignore Generic.NamingConventions.UpperCaseConstantName.ConstantNotUpperCase -- Lowercase constant name; established across codebase and add-ons.
+			define( 'cmplz_tc_version', '1.4.0' . $debug ); // phpcs:ignore Generic.NamingConventions.UpperCaseConstantName.ConstantNotUpperCase -- Lowercase constant name; established across codebase and add-ons.
 		}
 
 		/**
@@ -262,6 +274,10 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 		private function includes() {
 			// Document class is required on all requests (shortcode + PDF endpoint).
 			require_once cmplz_tc_path . 'class-document.php';
+
+			// Withdrawal handler is required on all requests: it serves the public
+			// admin-post endpoint and its state is read during front-end rendering.
+			require_once cmplz_tc_path . 'class-withdrawal.php';
 
 			// Only load the Gutenberg block integration when the block editor is in use.
 			if ( cmplz_tc_uses_gutenberg() ) {
@@ -327,33 +343,17 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 /**
  * Runs first-time setup tasks when the plugin is activated.
  *
- * Seeds the `cmplz_generate_pdf_languages` option with the current WordPress
- * site locale so a PDF is generated for the active language on first use.
- * Also sets a short-lived transient that triggers a redirect to the plugin
- * settings page immediately after activation, giving users a smooth onboarding
+ * Sets a short-lived transient that triggers a redirect to the plugin settings
+ * page immediately after activation, giving users a smooth onboarding
  * experience.
- *
- * The language seeding is guarded with a get_option() check so it only runs
- * once; subsequent activations (e.g. after deactivate/reactivate) do not
- * overwrite any languages the user may have added.
  *
  * @since  1.0.0
  *
- * @see    cmplz_tc_sanitize_language()
  * @see    register_activation_hook()
  *
  * @return void
  */
 function cmplz_tc_activation() {
-	// Seed the PDF languages list only on the very first activation.
-	if ( ! get_option( 'cmplz_generate_pdf_languages' ) ) {
-		// Build a map of sanitised locale → 1 (enabled) for the site's current locale.
-		$languages = array( cmplz_tc_sanitize_language( get_locale() ) => 1 );
-		// Remove any empty keys that result from an unrecognised locale format.
-		// @phpstan-ignore-next-line -- The value may be an empty string if the locale format is unrecognised.
-		$languages = array_filter( $languages );
-		update_option( 'cmplz_generate_pdf_languages', $languages );
-	}
 	// Set a transient consumed by the admin redirect handler to forward the user to settings.
 	set_transient( 'cmplz_tc_redirect_to_settings', true, DAY_IN_SECONDS );
 }

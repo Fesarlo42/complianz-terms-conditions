@@ -13,6 +13,7 @@ parameters:
         - class-field.php
         - class-review.php
         - class-wizard.php
+        - class-withdrawal.php
         - callback-notices.php
         - complianz-terms-conditions.php
         - config
@@ -38,7 +39,7 @@ parameters:
         - message: '#Constant cmplz_url not found#'
 
         # ── Optional Mpdf dependency ───────────────────────────────────────────
-        - message: '#(Instantiated class|Call to method .* on an unknown class) Mpdf\\Mpdf#'
+        - message: '#(Instantiated class|Call to method .* on an unknown class|Method .+ has invalid return type) Mpdf\\Mpdf#'
         - message: '#PHPDoc tag @throws with type Mpdf\\MpdfException is not subtype of Throwable#'
 
         # ── Plugin helper functions (defined in functions.php / assets/icons.php)

@@ -3,6 +3,10 @@
 /node_modules
 /gutenberg/node_modules
 
+# PHPUnit
+.phpunit.result.cache
+/.phpunit.cache
+
 # OS
 .DS_Store
 

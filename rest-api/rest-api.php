@@ -47,6 +47,48 @@ function cmplz_tc_documents_rest_route() {
 			'permission_callback' => '__return_true',
 		)
 	);
+
+	register_rest_route(
+		'complianz_tc/v1',
+		'withdrawal-nonce',
+		array(
+			'methods'             => 'GET',
+			'callback'            => 'cmplz_tc_rest_api_withdrawal_nonce',
+			// The endpoint issues a public anti-abuse nonce; it performs no privileged action.
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+
+/**
+ * Return a fresh withdrawal-form nonce and render timestamp, uncached.
+ *
+ * The withdrawal form page stays fully cacheable; its nonce and render timestamp are
+ * fetched from this small uncached endpoint at page load so full-page caching can never
+ * serve a stale nonce and reject a legitimate submission. The no-store header prevents any
+ * intermediary from caching the response. A light per-IP throttle bounds mass nonce minting;
+ * a throttled visitor still submits fine because an absent nonce is accepted downstream.
+ *
+ * @since  1.4.0
+ * @access public
+ *
+ * @return WP_REST_Response The nonce and current server timestamp, or a 429 when throttled.
+ */
+function cmplz_tc_rest_api_withdrawal_nonce() {
+	if ( ! COMPLIANZ_TC::$withdrawal->within_nonce_endpoint_rate_limit() ) {
+		$response = new WP_REST_Response( array( 'error' => 'rate_limited' ), 429 );
+		$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
+		return $response;
+	}
+
+	$response = new WP_REST_Response(
+		array(
+			'nonce'    => cmplz_tc_withdrawal::create_nonce(),
+			'rendered' => time(),
+		)
+	);
+	$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
+	return $response;
 }
 
 /**

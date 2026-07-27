@@ -138,3 +138,35 @@ register_block_type(
 		'render_callback' => 'cmplz_tc_render_document_block',
 	)
 );
+
+/**
+ * Renders the withdrawal-form block on the front end.
+ *
+ * Delegates to cmplz_tc_document::render_withdrawal_form() so the block and the
+ * [cmplz-tc-withdrawal-form] shortcode produce identical output. The method also
+ * enqueues the form's front-end assets on render, covering embeds on arbitrary pages.
+ *
+ * @since  1.4.0
+ * @access public
+ *
+ * @see    cmplz_tc_document::render_withdrawal_form()
+ *
+ * @param  array  $attributes  Block attributes (unused; the form has no editor options).
+ * @param  string $content     Inner block content (unused for this dynamic block).
+ * @return string              The rendered withdrawal-form HTML.
+ */
+function cmplz_tc_render_withdrawal_form_block( $attributes, $content ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- Signature fixed by register_block_type render_callback.
+	return COMPLIANZ_TC::$document->render_withdrawal_form();
+}
+
+/**
+ * Registers the withdrawal-form Gutenberg block with a server-side render callback.
+ *
+ * @since 1.4.0
+ */
+register_block_type(
+	'complianztc/withdrawal-form',
+	array(
+		'render_callback' => 'cmplz_tc_render_withdrawal_form_block',
+	)
+);

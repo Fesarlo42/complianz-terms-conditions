@@ -188,3 +188,45 @@ registerBlockType( 'complianztc/terms-conditions', {
 		return null;
 	},
 } );
+
+/**
+ * Editor placeholder for the withdrawal form block.
+ *
+ * The form is fully determined by the generator configuration and rendered
+ * server-side, so the editor shows a static placeholder rather than a live
+ * preview.
+ */
+const withdrawalForm = () => {
+	const blockProps = useBlockProps();
+	return (
+		<div { ...blockProps }>
+			<p><strong>{ __( 'Complianz — Withdrawal form', 'complianz-terms-conditions' ) }</strong></p>
+			<p>{ __( 'The withdrawal form is rendered here on the front end, using your Terms & Conditions settings.', 'complianz-terms-conditions' ) }</p>
+		</div>
+	);
+};
+
+/**
+ * Register the Complianz withdrawal form Gutenberg block.
+ *
+ * Server-side rendered (save returns null); output is identical to the
+ * [cmplz-tc-withdrawal-form] shortcode.
+ */
+registerBlockType( 'complianztc/withdrawal-form', {
+	apiVersion: 3,
+	title: __( 'Withdrawal form - Complianz Terms & conditions', 'complianz-terms-conditions' ),
+	icon: iconEl,
+	category: 'widgets',
+	keywords: [
+		__( 'Withdrawal form', 'complianz-terms-conditions' ),
+		__( 'Terms & conditions', 'complianz-terms-conditions' ),
+	],
+	supports: {
+		html: false,
+	},
+	edit: withdrawalForm,
+	save: function() {
+		// Rendering in PHP.
+		return null;
+	},
+} );
