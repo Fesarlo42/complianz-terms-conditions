@@ -321,6 +321,11 @@ if ( ! class_exists( 'COMPLIANZ_TC' ) ) {
 					load_plugin_textdomain( 'complianz-terms-conditions' );
 				}
 			);
+
+			// Community translations sometimes damage printf placeholders, which makes
+			// sprintf() fatal on PHP 8; repair them before any caller formats them.
+			add_filter( 'gettext', 'cmplz_tc_repair_translation', 10, 3 );
+			add_filter( 'gettext_with_context', 'cmplz_tc_repair_translation_with_context', 10, 4 );
 		}
 	}
 
