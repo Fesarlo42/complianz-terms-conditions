@@ -48,34 +48,19 @@ if ( ! function_exists( 'cmplz_tc_repair_placeholders' ) ) {
 
 if ( ! function_exists( 'cmplz_tc_repair_translation' ) ) {
 	/**
-	 * Repairs placeholders in this plugin's translations. Filters `gettext`.
+	 * Repairs placeholders in this plugin's translations.
+	 *
+	 * Filters `gettext`, `gettext_with_context`, `ngettext` and `ngettext_with_context`,
+	 * which all pass the text domain as their last argument.
 	 *
 	 * @since  1.4.1
 	 *
 	 * @param  string $translation Translated text.
-	 * @param  string $text        Original, untranslated text.
-	 * @param  string $domain      Text domain the string belongs to.
+	 * @param  mixed  ...$args     Remaining hook arguments; the last one is the text domain.
 	 * @return string              Translated text with valid placeholders.
 	 */
-	function cmplz_tc_repair_translation( $translation, $text, $domain ) {
-		return 'complianz-terms-conditions' === $domain ? cmplz_tc_repair_placeholders( $translation ) : $translation;
-	}
-}
-
-if ( ! function_exists( 'cmplz_tc_repair_translation_with_context' ) ) {
-	/**
-	 * Repairs placeholders in this plugin's contextual translations. Filters `gettext_with_context`.
-	 *
-	 * @since  1.4.1
-	 *
-	 * @param  string $translation Translated text.
-	 * @param  string $text        Original, untranslated text.
-	 * @param  string $context     Context the string was registered with.
-	 * @param  string $domain      Text domain the string belongs to.
-	 * @return string              Translated text with valid placeholders.
-	 */
-	function cmplz_tc_repair_translation_with_context( $translation, $text, $context, $domain ) {
-		return 'complianz-terms-conditions' === $domain ? cmplz_tc_repair_placeholders( $translation ) : $translation;
+	function cmplz_tc_repair_translation( $translation, ...$args ) {
+		return 'complianz-terms-conditions' === end( $args ) ? cmplz_tc_repair_placeholders( $translation ) : $translation;
 	}
 }
 

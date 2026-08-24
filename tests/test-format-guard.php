@@ -20,11 +20,16 @@ class FormatGuardTest extends WP_UnitTestCase {
 	 *
 	 * @param  string $needle      Fragment identifying the original string.
 	 * @param  string $translation Translation to serve instead.
-	 * @param  string $filter      Either 'gettext' or 'gettext_with_context'.
+	 * @param  string $filter      One of the four gettext filters the plugin hooks.
 	 * @return callable            The registered callback, for remove_filter().
 	 */
 	private function fake_translation( $needle, $translation, $filter = 'gettext' ) {
-		$args     = 'gettext' === $filter ? 3 : 4;
+		$args     = array(
+			'gettext'               => 3,
+			'gettext_with_context'  => 4,
+			'ngettext'              => 5,
+			'ngettext_with_context' => 6,
+		)[ $filter ];
 		$callback = static function ( $current, $text ) use ( $needle, $translation ) {
 			return false !== strpos( $text, $needle ) ? $translation : $current;
 		};
@@ -144,19 +149,40 @@ class FormatGuardTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * End-to-end through _n(): plural forms are repaired too.
+	 *
+	 * @return void
+	 */
+	public function test_damaged_plural_translation_does_not_fatal() {
+		$callback = $this->fake_translation( 'day of', '%1$ dnů z %2$.', 'ngettext' );
+
+		$result = sprintf(
+			// translators: 1 is the elapsed number of days, 2 is the total.
+			_n( '%1$s day of %2$s', '%1$s days of %2$s', 3, 'complianz-terms-conditions' ),
+			3,
+			14
+		);
+		remove_filter( 'ngettext', $callback, 5 );
+
+		$this->assertSame( '3 dnů z 14.', $result );
+	}
+
+	/**
 	 * Translations belonging to other plugins are left alone.
+	 *
+	 * The domain is the last argument of all four filters, so the callback reads it
+	 * from the end regardless of how many arguments the hook passes.
 	 *
 	 * @return void
 	 */
 	public function test_other_text_domains_are_not_touched() {
-		$damaged = 'someone else %1$poškozeno%2$.';
+		$damaged  = 'someone else %1$poškozeno%2$.';
+		$repaired = 'someone else %1$spoškozeno%2$s.';
 
 		$this->assertSame( $damaged, cmplz_tc_repair_translation( $damaged, 'original', 'other-plugin' ) );
-		$this->assertSame( $damaged, cmplz_tc_repair_translation_with_context( $damaged, 'original', 'Context', 'other-plugin' ) );
-		$this->assertSame(
-			'someone else %1$spoškozeno%2$s.',
-			cmplz_tc_repair_translation( $damaged, 'original', 'complianz-terms-conditions' )
-		);
+		$this->assertSame( $damaged, cmplz_tc_repair_translation( $damaged, 'one', 'many', 2, 'Context', 'other-plugin' ) );
+		$this->assertSame( $repaired, cmplz_tc_repair_translation( $damaged, 'original', 'complianz-terms-conditions' ) );
+		$this->assertSame( $repaired, cmplz_tc_repair_translation( $damaged, 'one', 'many', 2, 'complianz-terms-conditions' ) );
 	}
 
 	/**
@@ -165,7 +191,8 @@ class FormatGuardTest extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_filters_are_registered() {
-		$this->assertSame( 10, has_filter( 'gettext', 'cmplz_tc_repair_translation' ) );
-		$this->assertSame( 10, has_filter( 'gettext_with_context', 'cmplz_tc_repair_translation_with_context' ) );
+		foreach ( array( 'gettext', 'gettext_with_context', 'ngettext', 'ngettext_with_context' ) as $filter ) {
+			$this->assertSame( 10, has_filter( $filter, 'cmplz_tc_repair_translation' ), $filter );
+		}
 	}
 }
